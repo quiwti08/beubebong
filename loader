@@ -3,7 +3,7 @@ loadstring(game:HttpGet('https://raw.githubusercontent.com/quiwti08/beubebong/re
 if not game:IsLoaded() then 
     game.Loaded:Wait()
 end
-if game.GameId ~= 17625359962 then
+--[[if game.GameId ~= 17625359962 then
 
 
 local Players = game:GetService("Players")
@@ -105,7 +105,7 @@ local success, err = pcall(function()
         end
     end)
 end)
-end
+end]]
 coroutine.wrap(function()
 if not syn or not protectgui then
     getgenv().protectgui = function() end
