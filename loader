@@ -242,15 +242,14 @@ if ChatEnabled and chatWindow then
 end
 local Camera = workspace.CurrentCamera
 local Window = Library:CreateWindow({
-    Title = 'matcha.cc | gg/Vsnz2wfjP5',
-    Center = false,
+	Title = "",
+	Footer = "matcha.cc | discord.gg/Vsnz2wfjP5",
+	Icon = 241778280,
+	NotifySide = "Right",
+	ShowCustomCursor = false,
+    Compact = true,
     AutoShow = true,
-    Resizable = true,
-    ShowCustomCursor = true,
-    UnlockMouseWhileOpen = true,
-    NotifySide = "Right",
-    TabPadding = 8,
-    MenuFadeTime = 0.2
+    MobileButtonsSide = "Right"
 })
 local Tabs = {
     Main = Window:AddTab('Main'),
@@ -4729,7 +4728,8 @@ SelfGroup:AddToggle('WeaponChamsEnabled', {
         Settings.Visuals.Weapon_Chams.Color = Value
         applyChams(localPlayer.Character)
     end
-}):AddDropdown('WeaponChamsType', {
+})
+SelfGroup:AddDropdown('WeaponChamsType', {
     Values = {'Neon', 'ForceField'},
     Default = 'Neon',
     Multi = false,
@@ -4758,7 +4758,8 @@ SelfGroup:AddToggle('ClientChamsEnabled', {
         Settings.Visuals.Character_Chams.Color = Value
         applyChams(localPlayer.Character)
     end
-}):AddDropdown('ClientChamsType', {
+})
+SelfGroup:AddDropdown('ClientChamsType', {
     Values = {'Force Field', 'Neon'},
     Default = 'Force Field',
     Multi = false,
