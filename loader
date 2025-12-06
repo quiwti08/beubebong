@@ -2352,7 +2352,7 @@ Top.BorderSizePixel = 0
 Top.Position = UDim2.new(0, 0, -0.101449274, 0)
 Top.Size = UDim2.new(0, 358, 0, 7)
 
-UIGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0.00, Color3.fromRGB(184, 159, 227)), ColorSequenceKeypoint.new(1.00, Color3.fromRGB(102, 88, 156))}
+UIGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0.00, Color3.fromRGB(140, 230, 225)), ColorSequenceKeypoint.new(1.00, Color3.fromRGB(40, 140, 155))}
 UIGradient.Rotation = 90
 UIGradient.Parent = Top
 
@@ -2379,7 +2379,7 @@ HealthBar.BorderSizePixel = 0
 HealthBar.Position = UDim2.new(-0.00336122862, 0, 0.164894029, 0)
 HealthBar.Size = UDim2.new(0, 130, 0, 19)
 
-UIGradient_4.Color = ColorSequence.new{ColorSequenceKeypoint.new(0.00, Color3.fromRGB(184, 159, 227)), ColorSequenceKeypoint.new(1.00, Color3.fromRGB(102, 88, 156))}
+UIGradient_4.Color = ColorSequence.new{ColorSequenceKeypoint.new(0.00, Color3.fromRGB(140, 230, 225)), ColorSequenceKeypoint.new(1.00, Color3.fromRGB(40, 140, 155))}
 UIGradient_4.Rotation = 90
 UIGradient_4.Parent = HealthBar
 
