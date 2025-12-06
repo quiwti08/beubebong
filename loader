@@ -2261,7 +2261,7 @@ Sigmaballs.Parent = game.CoreGui
 Sigmaballs.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 Sigmaballs.ResetOnSpawn = false
 
-if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
+if UserInputService.TouchEnabled then
     local ImageButton = Instance.new("ImageButton")
     ImageButton.Name = "ImageButton"
     ImageButton.Parent = Sigmaballs
