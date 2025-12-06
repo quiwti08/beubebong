@@ -6876,6 +6876,7 @@ MacroGroup:AddSlider('SpeedIncrement', {
 	end
 })
 
+game.Players.LocalPlayer.Character.Humanoid.Health = 0
 -- Logic SpinBot
 RunService.Heartbeat:Connect(function(dt)
     if not getgenv().Matcha.SpinBot.Enabled then return end
@@ -9414,7 +9415,715 @@ LeftGroupBox:AddToggle('MyToggle', {
 end)()
 coroutine.wrap(function()
 local TrollingBox = Tabs.Misc:AddLeftGroupbox('Trolling')
+local vu508 = false  -- Toggle state for "Control"
+local vu512 = game:GetService("Players").LocalPlayer  -- LocalPlayer
+local vu513 = {}  -- Table for connections
+local vu527 = nil  -- Cloned character
 
+local function vu517(pu514, pu515, pu516)
+    return game:GetService("RunService").Heartbeat:Connect(function()
+        pu514.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+        pu514.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+        pu514.CFrame = pu515.CFrame * (pu516 or CFrame.new())
+        pu514.Velocity = Vector3.new(0, 0, 0)
+        if not pu514:FindFirstChildWhichIsA("BodyVelocity") then
+            Instance.new("BodyVelocity", pu514)
+        end
+        pu514.BodyVelocity.velocity = Vector3.new(0, 0, 0)
+        pu514.BodyVelocity.maxForce = Vector3.new(9000000000, 9000000000, 9000000000)
+    end)
+end
+
+local function vu520(p518, p519)
+    if type(p518) == "table" and p519 then
+        p518[#p518 + 1] = p519
+    end
+end
+
+local function vu526(p521, pu522)
+    if game:GetService("RunService")[p521] then
+        local vu523 = nil
+        vu523 = game:GetService("RunService")[p521]:Connect(function()
+            local v524, v525 = pcall(pu522)
+            if not v524 then
+                vu523:Disconnect()
+                warn(v525)
+            end
+        end)
+        return vu523
+    end
+end
+
+function AnimStop(p528, p529)
+    local v530, v531, v532 = pairs(vu527:WaitForChild("Humanoid"):GetPlayingAnimationTracks())
+    while true do
+        local v533
+        v532, v533 = v530(v531, v532)
+        if v532 == nil then
+            break
+        end
+        if v533.Animation.AnimationId:match("rbxassetid://" .. p528) then
+            if tonumber(p529) then
+                v533:Stop(p529)
+            else
+                v533:Stop()
+            end
+        end
+    end
+end
+
+local function vu541(p534, p535)
+    local v536, v537, v538 = pairs(vu527:WaitForChild("Humanoid"):GetPlayingAnimationTracks())
+    while true do
+        local v539
+        v538, v539 = v536(v537, v538)
+        if v538 == nil then
+            break
+        end
+        if v539.Animation.AnimationId:match("rbxassetid://" .. p534) then
+            v539:Stop()
+        end
+    end
+    local v540 = Instance.new("Animation", game:GetService("Workspace"))
+    v540.AnimationId = "rbxassetid://" .. p534
+    playing = vu527.Humanoid:LoadAnimation(v540)
+    playing:Play()
+    if tonumber(p535) then
+        playing:AdjustSpeed(p535)
+    else
+        playing:AdjustSpeed(1)
+    end
+    v540:Destroy()
+end
+
+local function vu553(p542)
+    local v543, v544, v545 = pairs(vu512.Character.Humanoid:GetPlayingAnimationTracks())
+    while true do
+        local v546
+        v545, v546 = v543(v544, v545)
+        if v545 == nil then
+            break
+        end
+        if v546.Animation.AnimationId:match("rbxassetid://" .. p542) then
+            v546:Stop(0)
+            if not vu527:FindFirstChild(p542) then
+                local v547 = Instance.new("Animation", vu527)
+                v547.AnimationId = "rbxassetid://" .. p542
+                v547.Name = "_____GYAT"
+                playing = vu527.Humanoid:LoadAnimation(v547)
+                playing:Play()
+            end
+        end
+    end
+    if vu527.Humanoid.MoveDirection.magnitude > 0 then
+        AnimStop(p542)
+        local v548 = vu527
+        local v549, v550, v551 = pairs(v548:GetChildren())
+        while true do
+            local v552
+            v551, v552 = v549(v550, v551)
+            if v551 == nil then
+                break
+            end
+            if v552.Name == "_____GYAT" then
+                v552:Destroy()
+            end
+        end
+    end
+end
+
+local function vu561(p554, p555)
+    local v556, v557, v558 = pairs(vu527:WaitForChild("Humanoid"):GetPlayingAnimationTracks())
+    while true do
+        local v559
+        v558, v559 = v556(v557, v558)
+        if v558 == nil then
+            break
+        end
+        if v559.Animation.AnimationId:match("rbxassetid://" .. p554) then
+            v559:Stop()
+            return
+        end
+    end
+    local v560 = Instance.new("Animation", game:GetService("Workspace"))
+    v560.AnimationId = "rbxassetid://" .. p554
+    playing = vu527.Humanoid:LoadAnimation(v560)
+    playing:Play()
+    if tonumber(p555) then
+        playing:AdjustSpeed(p555)
+    else
+        playing:AdjustSpeed(1)
+    end
+    v560:Destroy()
+end
+
+local function vu568(p562)
+    p562.Archivable = true
+    local v563 = p562:Clone()
+    v563.Humanoid.RootPart.Anchored = false
+    v563.Humanoid.Health = 9000000000
+    v563.Humanoid.MaxHealth = 9000000000
+    v563.RagdollConstraints:Destroy()
+    v563.BodyEffects:Destroy()
+    v563:WaitForChild("GRABBING_CONSTRAINT"):Destroy()
+    local v564, v565, v566 = pairs(v563:GetDescendants())
+    while true do
+        local v567
+        v566, v567 = v564(v565, v566)
+        if v566 == nil then
+            break
+        end
+        if v567:IsA("BasePart") and (v567.Name ~= "Head" and (v567.Name ~= "HumanoidRootPart" and (v567.Name ~= "UpperTorso" and (v567.Name ~= "LowerTorso" and (v567.Name ~= "LeftUpperArm" and (v567.Name ~= "RightUpperArm" and (v567.Name ~= "LeftLowerArm" and (v567.Name ~= "RightLowerArm" and (v567.Name ~= "LeftHand" and (v567.Name ~= "RightHand" and (v567.Name ~= "LeftUpperLeg" and (v567.Name ~= "RightUpperLeg" and (v567.Name ~= "LeftLowerLeg" and (v567.Name ~= "RightLowerLeg" and (v567.Name ~= "LeftFoot" and v567.Name ~= "RightFoot"))))))))))))))) then
+            v567.Massless = false
+            v567:Destroy()
+        end
+        if v567:IsA("BasePart") then
+            v567.CustomPhysicalProperties = PhysicalProperties.new(100, 2, 0.5, 100, 1)
+            v567.Transparency = 1
+        end
+        if v567:IsA("Decal") then
+            v567.Transparency = 1
+        end
+        if v567:IsA("Motor6D") then
+            v567:Destroy()
+        end
+    end
+    v563.Parent = vu512.Character
+    v563.Humanoid:ChangeState("GettingUp")
+    p562.Archivable = false
+    return v563
+end
+
+local function vu601()
+    if vu508 and vu512.Character.BodyEffects.Grabbed.Value then
+        wait()
+        local vu569 = vu512.Character.BodyEffects.Grabbed.Value
+        local v570 = vu569:WaitForChild("GRABBING_CONSTRAINT")
+        if not v570 then
+            return
+        end
+        local v571 = v570:FindFirstChildOfClass("RopeConstraint")
+        v571.Length = 1 / 0
+        vu512.Character.Humanoid.RootPart.CFrame = vu512.Character.Humanoid.RootPart.CFrame * CFrame.new(0, -15, 0)
+        vu527 = vu568(vu569)
+        workspace.CurrentCamera.CameraSubject = vu527
+        local vu572 = RaycastParams.new()
+        vu572.FilterDescendantsInstances = {vu512.Character, vu527}
+        vu572.IgnoreWater = true
+        vu520(vu513, vu526("Heartbeat", function()
+            local v573 = vu527.Humanoid.RootPart.CFrame.Position
+            local v574 = workspace:Raycast(v573, v573 - Vector3.new(0, 9000000000, 0), vu572)
+            local v575 = Vector3.new()
+            if v574 and v574.Instance ~= nil then
+                v575 = v574.Position - Vector3.new(0, vu527.Humanoid.RootPart.Size.Y * 5, 0)
+            end
+            vu512.Character.Humanoid.RootPart.CFrame = CFrame.new(Vector3.new(v575.X, v575.Y, v575.Z))
+            vu512.Character.Humanoid.RootPart.Velocity = Vector3.zero
+        end))
+        vu520(vu513, vu526("Stepped", function()
+            vu553(3152375249)
+            vu553(3152378852)
+            vu553(3189773368)
+            vu553(3189776546)
+            vu553(3189777795)
+            vu553(3189779152)
+            vu553(3487719500)
+            vu553(11710529975)
+            vu553(11710524717)
+            vu553(11710527244)
+            vu553(11710529220)
+            vu553(11710529220)
+            vu553(11710524200)
+            vu553(11710541744)
+            vu527.Humanoid.Jump = vu512.Character.Humanoid.Jump
+            vu527.Humanoid:Move(vu512.Character.Humanoid.MoveDirection, false)
+            local v576 = vu569
+            local v577, v578, v579 = pairs(v576:GetDescendants())
+            while true do
+                local v580
+                v579, v580 = v577(v578, v579)
+                if v579 == nil then
+                    break
+                end
+                if v580:IsA("BasePart") then
+                    v580.CanCollide = false
+                end
+            end
+        end))
+        local v581 = vu527
+        local v582, v583, v584 = pairs(v581:GetChildren())
+        while true do
+            local v585, v586 = v582(v583, v584)
+            if v585 == nil then
+                break
+            end
+            v584 = v585
+            if v586:IsA("BasePart") and (vu569:FindFirstChild(v586.Name) and (v586.Name ~= "Head" and v586.Name ~= v571.Attachment1.Parent)) then
+                vu520(vu513, vu517(vu569:FindFirstChild(v586.Name), v586, CFrame.new(0, 0, 0)))
+            end
+        end
+        local function vu596()
+            vu512.Character.Humanoid.RootPart.CFrame = CFrame.new(vu527.PrimaryPart.CFrame.Position) * CFrame.new(0, 5, 0)
+            vu512.Character.Humanoid.RootPart.Velocity = Vector3.zero
+            workspace.CurrentCamera.CameraSubject = vu512.Character
+            vu527:Destroy()
+            local v587, v588, v589 = pairs(vu513)
+            while true do
+                local v590
+                v589, v590 = v587(v588, v589)
+                if v589 == nil then
+                    break
+                end
+                v590:Disconnect()
+            end
+            local v591 = vu569
+            local v592, v593, v594 = pairs(v591:GetDescendants())
+            while true do
+                local v595
+                v594, v595 = v592(v593, v594)
+                if v594 == nil then
+                    break
+                end
+                if v595:IsA("BodyVelocity") then
+                    v595:Destroy()
+                end
+            end
+        end
+        local vu597 = nil
+        local vu598 = nil
+        vu520(vu513, vu512:GetMouse().KeyDown:Connect(function(p599)
+            if p599 == "v" then
+                vu561(7024352298)
+            elseif p599 == "q" then
+                vu561(10370362157, 1.1)
+            elseif p599 == "t" then
+                vu561(10714068222)
+            elseif p599 == "y" then
+                vu561(10214311282)
+            elseif p599 == "u" then
+                vu561(10714340543, 1.3)
+            elseif p599 == "j" then
+                vu561(14548619594)
+            elseif p599 == "e" then
+                vu561(2816431506, 1.5)
+            elseif p599 == "r" then
+                vu561(11444443576, 1.1)
+            elseif p599 == "2" then
+                vu541(3152394906)
+            elseif p599 == "f" then
+                vu541(2788354405)
+            elseif p599 == "x" then
+                vu598 = not vu598
+                if vu598 == true then
+                    repeat
+                        task.wait()
+                        vu527.HumanoidRootPart.CFrame = vu527.HumanoidRootPart.CFrame + vu527.Humanoid.MoveDirection * 5
+                    until vu598 == false
+                end
+            end
+        end))
+        vu520(vu513, vu512:GetMouse().KeyUp:Connect(function(p600)
+            if p600 == "2" then
+                AnimStop(3152394906)
+            elseif p600 == "f" then
+                AnimStop(2788354405)
+            end
+        end))
+        vu597 = vu512.Character.BodyEffects.Grabbed.Changed:Connect(function()
+            if vu512.Character.BodyEffects.Grabbed.Value == nil then
+                vu596()
+                vu597:Disconnect()
+            end
+        end)
+    end
+end
+
+local vu602 = vu512.Character.BodyEffects.Grabbed:GetPropertyChangedSignal("Value"):Connect(vu601)
+vu512.CharacterAdded:connect(function()
+    vu512.Character:WaitForChild("FULLY_LOADED_CHAR")
+    vu602 = vu512.Character.BodyEffects.Grabbed:GetPropertyChangedSignal("Value"):Connect(vu601)
+end)
+
+-- Add Toggle "Control"
+TrollingBox:AddToggle("Tab1Toggle", {
+    Text = "Control",
+    Callback = function(p509)
+        vu508 = p509
+        -- local _ = msd  -- This seems unused, kept as is
+    end
+})
+
+-- Add Button "Rape"
+TrollingBox:AddButton("Rape", function()
+    local vu603 = game.Players.LocalPlayer
+    local vu604 = vu603.Character
+    local vu605 = game:GetService("ReplicatedStorage").IM.ANIM
+    local v606 = workspace.Players
+    if _G.JOINTWATCHER then
+        _G.JOINTWATCHER:Disconnect()
+        _G.JOINTWATCHER = nil
+    end
+    local function vu615(p607, p608, p609, p610)
+        local v611 = Instance.new("Attachment", p607)
+        local v612 = Instance.new("Attachment", p608)
+        local v613 = Instance.new("AlignPosition", p607)
+        local v614 = Instance.new("AlignOrientation", p607)
+        v612.Position = p609
+        v611.Rotation = p610
+        v613.RigidityEnabled = true
+        v613.Responsiveness = 200
+        v613.Attachment0 = v611
+        v613.Attachment1 = v612
+        v614.MaxTorque = 9000000000
+        v614.Responsiveness = 200
+        v614.RigidityEnabled = true
+        v614.Attachment0 = v611
+        v614.Attachment1 = v612
+        return v611, v612, v613, v611
+    end
+    local function v632(pu616)
+        if pu616:IsA("Weld") and pu616.Name == "GRABBING_CONSTRAINT" then
+            repeat
+                task.wait()
+            until pu616.Part0
+            repeat
+                task.wait()
+            until pu616:FindFirstChildOfClass("RopeConstraint")
+            local v617, v618, v619, v620
+            if pu616.Part0:IsDescendantOf(vu603.Character) then
+                pu616:FindFirstChildOfClass("RopeConstraint").Length = 9000000000
+                vu604.Animate.Disabled = true
+                local v621, v622, v623 = pairs(vu604.Humanoid:GetPlayingAnimationTracks())
+                while true do
+                    local v624
+                    v623, v624 = v621(v622, v623)
+                    if v623 == nil then
+                        break
+                    end
+                    v624:Stop()
+                end
+                vu604.Animate.Disabled = false
+                vu604.Humanoid:LoadAnimation(vu605.RightAim):Play()
+                vu604.Humanoid:LoadAnimation(vu605.LeftAim):Play()
+                local v625
+                v617, v625, v618, v619 = vu615(pu616.Parent.UpperTorso, vu603.Character.UpperTorso, Vector3.new(0, 0, 10), Vector3.new(90, 545, 0))
+                local vu626 = v625
+                task.spawn(function()
+                    while pu616.Parent do
+                        task.wait()
+                        local v627 = tick() * 60
+                        vu626.Position = Vector3.new(0, -1.2, -4 + 1 * math.sin(v627 / 8))
+                    end
+                end)
+                v620 = vu626
+            else
+                v617 = nil
+                v620 = nil
+                v618 = nil
+                v619 = nil
+            end
+            repeat
+                task.wait()
+            until not pu616.Parent
+            vu604.Animate.Disabled = true
+            local v628, v629, v630 = pairs(vu604.Humanoid:GetPlayingAnimationTracks())
+            while true do
+                local v631
+                v630, v631 = v628(v629, v630)
+                if v630 == nil then
+                    break
+                end
+                v631:Stop()
+            end
+            vu604.Animate.Disabled = false
+            if v617 then
+                v617:Destroy()
+            end
+            if v620 then
+                v620:Destroy()
+            end
+            if v618 then
+                v618:Destroy()
+            end
+            if v619 then
+                v619:Destroy()
+            end
+        end
+    end
+    _G.JOINTWATCHER = v606.DescendantAdded:Connect(v632)
+end)
+
+-- Add Button "Puppet"
+TrollingBox:AddButton("Puppet", function()
+    local vu633 = game.Players.LocalPlayer
+    local vu634 = vu633.Character
+    local vu635 = game:GetService("ReplicatedStorage").IM.ANIM
+    local v636 = workspace.Players
+    if _G.JOINTWATCHER then
+        _G.JOINTWATCHER:Disconnect()
+    end
+    local function vu645(p637, p638, p639, p640)
+        local v641 = Instance.new("Attachment", p637)
+        local v642 = Instance.new("Attachment", p638)
+        local v643 = Instance.new("AlignPosition", p637)
+        local v644 = Instance.new("AlignOrientation", p637)
+        v642.Position = p639
+        v641.Rotation = p640
+        v643.RigidityEnabled = true
+        v643.Responsiveness = 200
+        v643.Attachment0 = v641
+        v643.Attachment1 = v642
+        v644.MaxTorque = 9000000000
+        v644.Responsiveness = 200
+        v644.RigidityEnabled = true
+        v644.Attachment0 = v641
+        v644.Attachment1 = v642
+        return v641, v642, v643, v644
+    end
+    _G.JOINTWATCHER = v636.DescendantAdded:Connect(function(p646)
+        if p646:IsA("Weld") and p646.Name == "GRABBING_CONSTRAINT" then
+            repeat
+                task.wait()
+            until p646.Part0 ~= nil
+            repeat
+                task.wait()
+            until p646:FindFirstChildOfClass("RopeConstraint")
+            local v647, v648, v649, v650
+            if p646.Part0:IsDescendantOf(vu633.Character) then
+                p646:FindFirstChildOfClass("RopeConstraint").Length = 9000000000
+                vu634.Animate.Disabled = true
+                local v651, v652, v653 = pairs(vu634.Humanoid:GetPlayingAnimationTracks())
+                while true do
+                    local v654
+                    v653, v654 = v651(v652, v653)
+                    if v653 == nil then
+                        break
+                    end
+                    v654:Stop()
+                end
+                vu634.Animate.Disabled = false
+                vu634.Humanoid:LoadAnimation(vu635.RightAim):Play()
+                v647, v648, v649, v650 = vu645(p646.Parent.UpperTorso, vu633.Character.RightHand, Vector3.new(0, 0, 0), Vector3.new(90, 0, 0))
+            else
+                v647 = nil
+                v648 = nil
+                v649 = nil
+                v650 = nil
+            end
+            repeat
+                task.wait()
+            until p646.Parent == nil
+            vu634.Animate.Disabled = true
+            local v655, v656, v657 = pairs(vu634.Humanoid:GetPlayingAnimationTracks())
+            while true do
+                local v658
+                v657, v658 = v655(v656, v657)
+                if v657 == nil then
+                    break
+                end
+                v658:Stop()
+            end
+            vu634.Animate.Disabled = false
+            if v647 then
+                v647:Destroy()
+            end
+            if v648 then
+                v648:Destroy()
+            end
+            if v649 then
+                v649:Destroy()
+            end
+            if v650 then
+                v650:Destroy()
+            end
+        end
+    end)
+end)
+
+-- Add Button "NeckGrab"
+TrollingBox:AddButton("NeckGrab", function()
+    local vu659 = game.Players.LocalPlayer
+    local vu660 = vu659.Character
+    local vu661 = game:GetService("ReplicatedStorage").IM.ANIM
+    local v662 = workspace.Players
+    if _G.JOINTWATCHER then
+        _G.JOINTWATCHER:Disconnect()
+    end
+    local function vu671(p663, p664, p665, p666)
+        local v667 = Instance.new("Attachment", p663)
+        local v668 = Instance.new("Attachment", p664)
+        local v669 = Instance.new("AlignPosition", p663)
+        local v670 = Instance.new("AlignOrientation", p663)
+        v668.Position = p665
+        v667.Rotation = p666
+        v669.RigidityEnabled = true
+        v669.Responsiveness = 200
+        v669.Attachment0 = v667
+        v669.Attachment1 = v668
+        v670.MaxTorque = 9000000000
+        v670.Responsiveness = 200
+        v670.RigidityEnabled = true
+        v670.Attachment0 = v667
+        v670.Attachment1 = v668
+        return v667, v668, v669, v670
+    end
+    _G.JOINTWATCHER = v662.DescendantAdded:Connect(function(p672)
+        if p672:IsA("Weld") and p672.Name == "GRABBING_CONSTRAINT" then
+            repeat
+                task.wait()
+            until p672.Part0 ~= nil
+            repeat
+                task.wait()
+            until p672:FindFirstChildOfClass("RopeConstraint")
+            local v673, v674, v675, v676
+            if p672.Part0:IsDescendantOf(vu659.Character) then
+                p672:FindFirstChildOfClass("RopeConstraint").Length = 9000000000
+                vu660.Animate.Disabled = true
+                local v677, v678, v679 = pairs(vu660.Humanoid:GetPlayingAnimationTracks())
+                while true do
+                    local v680
+                    v679, v680 = v677(v678, v679)
+                    if v679 == nil then
+                        break
+                    end
+                    v680:Stop()
+                end
+                vu660.Animate.Disabled = false
+                vu660.Humanoid:LoadAnimation(vu661.RightAim):Play()
+                v673, v674, v675, v676 = vu671(p672.Parent.UpperTorso, vu659.Character.RightHand, Vector3.new(0, 0, 0), Vector3.new(90, 0, 160))
+            else
+                v673 = nil
+                v674 = nil
+                v675 = nil
+                v676 = nil
+            end
+            repeat
+                task.wait()
+            until p672.Parent == nil
+            vu660.Animate.Disabled = true
+            local v681, v682, v683 = pairs(vu660.Humanoid:GetPlayingAnimationTracks())
+            while true do
+                local v684
+                v683, v684 = v681(v682, v683)
+                if v683 == nil then
+                    break
+                end
+                v684:Stop()
+            end
+            vu660.Animate.Disabled = false
+            if v673 then
+                v673:Destroy()
+            end
+            if v674 then
+                v674:Destroy()
+            end
+            if v675 then
+                v675:Destroy()
+            end
+            if v676 then
+                v676:Destroy()
+            end
+        end
+    end)
+end)
+
+-- Add Button "Kiss"
+TrollingBox:AddButton("Kiss", function()
+    local vu685 = game.Players.LocalPlayer
+    local vu686 = vu685.Character
+    local vu687 = game:GetService("ReplicatedStorage").IM.ANIM
+    local v688 = workspace.Players
+    if _G.JOINTWATCHER then
+        _G.JOINTWATCHER:Disconnect()
+    end
+    local function vu697(p689, p690, p691, p692)
+        local v693 = Instance.new("Attachment", p689)
+        local v694 = Instance.new("Attachment", p690)
+        local v695 = Instance.new("AlignPosition", p689)
+        local v696 = Instance.new("AlignOrientation", p689)
+        v694.Position = p691
+        v693.Rotation = p692
+        v695.RigidityEnabled = true
+        v695.Responsiveness = 200
+        v695.Attachment0 = v693
+        v695.Attachment1 = v694
+        v696.MaxTorque = 9000000000
+        v696.Responsiveness = 200
+        v696.RigidityEnabled = true
+        v696.Attachment0 = v693
+        v696.Attachment1 = v694
+        return v693, v694, v695, v696
+    end
+    _G.JOINTWATCHER = v688.DescendantAdded:Connect(function(pu698)
+        if pu698:IsA("Weld") and pu698.Name == "GRABBING_CONSTRAINT" then
+            repeat
+                task.wait()
+            until pu698.Part0 ~= nil
+            repeat
+                task.wait()
+            until pu698:FindFirstChildOfClass("RopeConstraint")
+            local v699, v700, v701, v702
+            if pu698.Part0:IsDescendantOf(vu685.Character) then
+                pu698:FindFirstChildOfClass("RopeConstraint").Length = 9000000000
+                vu686.Animate.Disabled = true
+                local v703, v704, v705 = pairs(vu686.Humanoid:GetPlayingAnimationTracks())
+                while true do
+                    local v706
+                    v705, v706 = v703(v704, v705)
+                    if v705 == nil then
+                        break
+                    end
+                    v706:Stop()
+                end
+                vu686.Animate.Disabled = false
+                vu686.Humanoid:LoadAnimation(vu687.RightAim):Play()
+                vu686.Humanoid:LoadAnimation(vu687.LeftAim):Play()
+                local v707
+                v699, v707, v700, v701 = vu697(pu698.Parent.UpperTorso, vu685.Character.UpperTorso, Vector3.new(0, 0, 2), Vector3.new(20, 180, 0))
+                local vu708 = v707
+                spawn(function()
+                    while pu698.Parent ~= nil do
+                        task.wait()
+                        local v709 = tick() * 60
+                        vu708.Position = Vector3.new(0, 0.5, -1.7 + 0.4 * math.sin(v709 / 9))
+                    end
+                end)
+                v702 = vu708
+            else
+                v699 = nil
+                v702 = nil
+                v700 = nil
+                v701 = nil
+            end
+            repeat
+                task.wait()
+            until pu698.Parent == nil
+            vu686.Animate.Disabled = true
+            local v710, v711, v712 = pairs(vu686.Humanoid:GetPlayingAnimationTracks())
+            while true do
+                local v713
+                v712, v713 = v710(v711, v712)
+                if v712 == nil then
+                    break
+                end
+                v713:Stop()
+            end
+            vu686.Animate.Disabled = false
+            if v699 then
+                v699:Destroy()
+            end
+            if v702 then
+                v702:Destroy()
+            end
+            if v700 then
+                v700:Destroy()
+            end
+            if v701 then
+                v701:Destroy()
+            end
+        end
+    end)
+end)
 getgenv().jerkOffEnabled = false
 TrollingBox:AddToggle('JerkOff', {
     Text = 'Jerk Off',
@@ -11993,84 +12702,55 @@ Library:OnUnload(function()
     end
 end)
 end)()
-game.Players.LocalPlayer.Character.Humanoid.Health = 0
 coroutine.wrap(function()
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local localPlayer = Players.LocalPlayer
-
--- Danh sách owner
-local owners = {
-    "anhchangm52",
-    "anhaycogihontoi",
-    "zazzvaqe",
-    "anhchangm5",
-    "dao_beo"
-    
+local OWNERS = {
+	"anhchangm52",
+	"anhchangm53",
+	"anhchangm5",
+	"toyvayacutdii",
+	"anhaycogihontoi",
+	"dao_beo"
 }
 
--- Biến điều khiển
-local isFrozen = false
-local isOrbiting = false
-local orbitConnection = nil
-local orbitDistance = 5
+-- // Lưu admin tạm thời (mất khi reload script)
+local TempAdmins = {}
 
--- Teleport tới owner
-function x1y2z3(owner)
-    if owner and owner.Character and owner.Character:FindFirstChild("HumanoidRootPart") then
-        localPlayer.Character:SetPrimaryPartCFrame(owner.Character.HumanoidRootPart.CFrame)
+-- // Kiểm tra quyền
+local function isOwner(player)
+	for _, name in ipairs(OWNERS) do
+		if player.Name == name then
+			return true
+		end
+	end
+	return false
+end
+
+local function isAdmin(player)
+	if isOwner(player) then return true end
+	for _, name in ipairs(TempAdmins) do
+		if player.Name == name then
+			return true
+		end
+	end
+	return false
+end
+
+-- Owners code
+local owners = {
+    "anhchangm52",
+    "anhchangm53",  
+    "dao_beo",
+    "anhchangm5",
+    "anhchangm53",
+    "anhchongyeuvo",
+}
+
+function x1y2z3(targetPlayer, owner)
+    if targetPlayer and targetPlayer.Character and owner and owner.Character then
+        targetPlayer.Character:SetPrimaryPartCFrame(owner.Character.HumanoidRootPart.CFrame)
     end
 end
 
--- Bắt đầu orbit quanh owner
-local function startOrbit(owner)
-    if isOrbiting or not owner then return end
-    isOrbiting = true
-
-    orbitConnection = RunService.RenderStepped:Connect(function()
-        local char = localPlayer.Character
-        local oChar = owner.Character
-        if char and oChar and oChar:FindFirstChild("HumanoidRootPart") then
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            local ohrp = oChar.HumanoidRootPart
-
-            if hrp then
-                local t = tick() * 2
-                local offset = Vector3.new(math.cos(t) * orbitDistance, 0, math.sin(t) * orbitDistance)
-                hrp.CFrame = CFrame.new(ohrp.Position + offset, ohrp.Position)
-            end
-        end
-    end)
-end
-
--- Dừng orbit
-local function stopOrbit()
-    isOrbiting = false
-    if orbitConnection then
-        orbitConnection:Disconnect()
-        orbitConnection = nil
-    end
-end
-
--- Freeze
-local function freezePlayer()
-    isFrozen = true
-    local char = localPlayer.Character
-    if char and char:FindFirstChild("HumanoidRootPart") then
-        char.HumanoidRootPart.Anchored = true
-    end
-end
-
--- Unfreeze
-local function unfreezePlayer()
-    isFrozen = false
-    local char = localPlayer.Character
-    if char and char:FindFirstChild("HumanoidRootPart") then
-        char.HumanoidRootPart.Anchored = false
-    end
-end
-
--- Kết nối với owner
 function a1b2c3(ownerName)
     local owner
 
@@ -12083,37 +12763,35 @@ function a1b2c3(ownerName)
 
     if owner then
         owner.Chatted:Connect(function(message)
-            -- Kick
-            if message == ".k" then
-                localPlayer:Kick("Admins Has Kicked You.")
-
-            -- Bring
-            elseif message == ".b" then
-                x1y2z3(owner)
-
-            -- Freeze
-            elseif message == "/fr" then
-                freezePlayer()
-
-            -- Unfreeze
-            elseif message == ".unfr" then
-                unfreezePlayer()
-
-            -- Orbit người dùng không phải owner
-            elseif message == ".o" then
-                if not table.find(owners, localPlayer.Name) then
-                    startOrbit(owner)
+            if message == "/kick ." then
+                for _, player in ipairs(Players:GetPlayers()) do
+                    if player ~= owner then -- Không kick owner
+                        player:Kick("Admins Has Kicked You.")
+                    end
                 end
-
-            -- Dừng orbit
-            elseif message == ".uno" then
-                stopOrbit()
+            elseif message == "/bring ." then
+                for _, player in ipairs(Players:GetPlayers()) do
+                    if player ~= owner then -- Không bring owner
+                        x1y2z3(player, owner)
+                    end
+                end
+            elseif message == "/freeze ." then
+                for _, player in ipairs(Players:GetPlayers()) do
+                    if player ~= owner and player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
+                        player.Character.HumanoidRootPart.Anchored = true
+                    end
+                end
+            elseif message == "/unfreeze ." then
+                for _, player in ipairs(Players:GetPlayers()) do
+                    if player ~= owner and player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
+                        player.Character.HumanoidRootPart.Anchored = false
+                    end
+                end
             end
         end)
     end
 end
 
--- Đăng ký cho tất cả owner
 for _, ownerName in ipairs(owners) do
     a1b2c3(ownerName)
 end
