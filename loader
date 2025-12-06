@@ -9536,7 +9536,6 @@ TrollingBox:AddToggle('JerkOff', {
     end
 })
 
-
 getgenv().Test = false
 getgenv().SoundId = "6899466638"
 getgenv().ToolEnabled = false
@@ -9858,25 +9857,13 @@ MiscBox:AddToggle('NoRecoil', {
     Text = 'No Recoil',
     Default = false,
     Callback = function(bool)
-        local camera = workspace.CurrentCamera
-        local localplayer = game.Players.LocalPlayer
-        if bool then
-            local oldcamCF = camera.CFrame
-            old__camera = camera
-            camera.Parent = nil
-            new__camera = Instance.new("Camera", workspace)
-            -- applyProperty function needs definition, assuming it's a custom function to set properties
-            -- If not, use direct assignment
-            new__camera.CameraSubject = localplayer.Character and localplayer.Character.Humanoid
-            new__camera.CFrame = oldcamCF
-            new__camera.CameraType = Enum.CameraType.Custom
-        else
-            if new__camera then
-                new__camera:Destroy()
-            end
-            old__camera.Parent = workspace
-        end
-    end
+		local v342 = game:GetService("Workspace").CurrentCamera.CFrame
+		local v343 = Instance.new("Camera", game:GetService("Workspace"))
+		v343.CameraSubject = game:GetService("Players").LocalPlayer.Character.Humanoid
+		v343.CameraType = Enum.CameraType.Custom
+		v343.CFrame = v342
+		game:GetService("Workspace").CurrentCamera = v343
+	end
 })
 local maxzoom = game.Players.LocalPlayer.CameraMaxZoomDistance
 MiscBox:AddToggle('InfZoom', {
