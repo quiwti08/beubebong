@@ -252,11 +252,12 @@ local Window = Library:CreateWindow({
     MobileButtonsSide = "Right"
 })
 local Tabs = {
-    Main = Window:AddTab('Main'),
-    Visual = Window:AddTab('Visual'),
-    Character = Window:AddTab('Character'),
-    Misc = Window:AddTab('Misc'),
-    ['UI Settings'] = Window:AddTab('UI Settings'),
+    Main = Window:AddTab('Main', 'target'),
+    Visual = Window:AddTab('Visual', 'eye'),
+    Character = Window:AddTab('Character', 'user'),
+    Misc = Window:AddTab('Misc', 'heart'),
+    Anti = Window:AddTab('Anti Aim', 'shield'),
+    ['UI Settings'] = Window:AddTab('UI Settings', 'settings'),
 }
 local previousTargetHealth = {}
 local TargetAimActive = false
@@ -289,14 +290,13 @@ local matchacc = {
         TracerOutlineColor = Color3.fromRGB(0, 0, 0),
         LookAt = false,
         SpectateTarget = false,
-        VoidResolver = false,
         AutoStomp = false,
 	    Prediction = 0,            -- manual prediction (default 0 như yêu cầu)
 	    AutoPredict = false,       -- toggle autopred
 	    PredictMode = "",    -- Manual / Calculate / Ping Sets
 	    HitPart = "Head",          -- dropdown hitpart
 	    Offset = 0,                -- normal Y offset
-	    JumpOffset = 0,            -- jump offset (khi jump hoặc freefall)
+	    JumpOffset = 0,            -- jump offset (khi jump hoặc Freefall)
 	    AirPartEnabled = false,    -- toggle airpart
 	    AirPart = "Head",          -- airpart dropdown
 	    Resolver = false,
@@ -319,6 +319,10 @@ local matchacc = {
 		    Type = "",
 		    Color = Color3.fromRGB(255, 255, 255), 
 		},
+        HitSkeleton = {
+            Enabled = false,
+            Color = Color3.fromRGB(255, 255, 255)
+        },
     },
     Checks = {
         Wall = false,
@@ -368,14 +372,10 @@ local matchacc = {
         JumpPower = 50,  -- Default Roblox jumppower
     },
 }
-
-local desync_setback = Instance.new("Part")
-desync_setback.Name = "DesyncSetback"
-desync_setback.Size = Vector3.new(2, 2, 1)
-desync_setback.CanCollide = false
-desync_setback.Anchored = true
-desync_setback.Transparency = 1
-desync_setback.Parent = workspace
+if not LPH_OBFUSCATED then
+    LPH_JIT = function(...) return ... end
+LPH_NO_VIRTUALIZE  = function(...) return ... end
+end
 
 local BodyClone = game:GetObjects("rbxassetid://8246626421")[1]
 BodyClone.Parent = workspace
@@ -434,120 +434,9 @@ ka_tracer.Transparency = 1
 ka_tracer.Anchored = true
 ka_tracer.CanCollide = false
 ka_tracer.Parent = workspace
-local HitChamDebounce = {}
+
 local TweenService = game:GetService("TweenService")
-local utility = {}
-utility.clone_character = function(player, transparency, color, material, delete_hrp)
-    if not player or not player.Character then return end
-    delete_hrp = delete_hrp == nil and true or delete_hrp
 
-    player.Character.Archivable = true
-    local clone = player.Character:Clone()
-    player.Character.Archivable = false
-
-    clone.Parent = workspace
-    clone.Name = "HitCham_"
-
-    for _, part in ipairs(clone:GetChildren()) do
-        if part:IsA("MeshPart") or part:IsA("Part") then
-            part.Anchored = true
-            part.CanCollide = false
-            part.Material = Enum.Material[material or "Neon"]
-            part.Color = color
-            part.Transparency = transparency
-
-            -- Xóa face
-            if part.Name == "Head" then
-                local face = part:FindFirstChild("face")
-                if face then face:Destroy() end
-            end
-        elseif part.Name ~= "HumanoidRootPart" or delete_hrp then
-            part:Destroy()
-        end
-    end
-
-    -- Xóa Humanoid + script
-    if clone:FindFirstChild("Humanoid") then
-        clone.Humanoid:Destroy()
-    end
-    for _, v in ipairs(clone:GetDescendants()) do
-        if v:IsA("Script") or v:IsA("LocalScript") or v:IsA("Animator") then
-            v:Destroy()
-        end
-    end
-
-    -- Highlight siêu chất (bắt buộc để nhìn đẹp)
-    local highlight = Instance.new("Highlight")
-    highlight.Adornee = clone
-    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    highlight.FillColor = color
-    highlight.FillTransparency = math.max(0, transparency - 0.3)
-    highlight.OutlineColor = Color3.new(1,1,1)
-    highlight.OutlineTransparency = 0
-    highlight.Parent = clone
-
-    return clone
-end
-
-local function createHitChamWithFade(plr)
-    if not plr or not plr.Character or not matchacc.HitEffects.HitChams.Enabled then return end
-    local now = tick()
-    if HitChamDebounce[plr] and (now - HitChamDebounce[plr]) < 0.1 then return end
-    HitChamDebounce[plr] = now
-
-    plr.Character.Archivable = true
-    local clone = plr.Character:Clone()
-    plr.Character.Archivable = false
-    clone.Parent = workspace
-    clone.Name = "HitCham_"..plr.Name
-
-    -- Xóa rác
-    if clone:FindFirstChild("Humanoid") then clone.Humanoid:Destroy() end
-    for _, v in pairs(clone:GetDescendants()) do
-        if v:IsA("Script") or v:IsA("LocalScript") or v:IsA("Animator") or v.Name == "face" then
-            v:Destroy()
-        elseif v:IsA("BasePart") or v:IsA("MeshPart") then
-            v.Anchored = true
-            v.CanCollide = false
-            v.Material = Enum.Material[matchacc.HitEffects.HitChams.Material]
-            v.Color = matchacc.HitEffects.HitChams.Color
-            v.Transparency = matchacc.HitEffects.HitChams.Transparency
-        end
-    end
-
-    -- Highlight
-    local hl = Instance.new("Highlight", clone)
-    hl.FillColor = matchacc.HitEffects.HitChams.Color
-    hl.FillTransparency = matchacc.HitEffects.HitChams.Transparency - 0.2
-    hl.OutlineTransparency = 0
-    hl.OutlineColor = Color3.new(1,1,1)
-
-    -- Fade out siêu mượt
-    local tweenInfo = TweenInfo.new(
-        matchacc.HitEffects.HitChams.Lifetime,
-        Enum.EasingStyle.Sine,
-        Enum.EasingDirection.InOut,
-        0, true, 0
-    )
-    for _, part in pairs(clone:GetDescendants()) do
-        if part:IsA("BasePart") or part:IsA("MeshPart") then
-            local tween = TweenService:Create(part, tweenInfo, {Transparency = 1})
-            tween:Play()
-        end
-    end
-    if hl then
-        local hlTween = TweenService:Create(hl, tweenInfo, {FillTransparency = 1, OutlineTransparency = 1})
-        hlTween:Play()
-    end
-
-    task.delay(matchacc.HitEffects.HitChams.Lifetime * 2, function()
-        if clone and clone.Parent then clone:Destroy() end
-    end)
-end
--- ==================== FULL HIT EFFECT SETUP - ĐẸP NHƯ NEVERLOSE / RISE ====================
--- Dán nguyên đoạn này vào cuối file matcha.cc (trước end) - Không cần chỉnh gì nữa
-
--- Table lưu tất cả Hit Effect Types
 local HitEffects = {
     ["Skibidi RedRizz"] = true,
     ["Nova"] = true,
@@ -1877,43 +1766,192 @@ if not workspace:FindFirstChild("MatchaHitEffects") then
 
     HitEffects["AuraBurst"] = auraBurstAtt
 end
+local HitChamsFolder = Instance.new("Folder")
+HitChamsFolder.Name = "HitChamsFolder"
+HitChamsFolder.Parent = workspace  -- Sử dụng workspace thay Workspace nếu chưa define
 
-local function playHitEffect(plr)
-    if not plr or not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then return end
-    if not matchacc.HitEffects.HitEffect.Enabled then return end
-
-    local effectTypes = matchacc.HitEffects.HitEffect.Type
-    if type(effectTypes) ~= "table" then
-        effectTypes = {effectTypes}
-    end
-
-    for _, effectName in ipairs(effectTypes) do
-        if not HitEffects[effectName] then continue end
-
-        local hrp = plr.Character.HumanoidRootPart
-        local template = workspace:FindFirstChild("MatchaHitEffects"):FindFirstChild(effectName)
-        if not template then continue end
-
-        local clonedAtt = template.HitEffectAttachment:Clone()
-        clonedAtt.Parent = hrp
-        for _, emitter in pairs(clonedAtt:GetChildren()) do
-            if emitter:IsA("ParticleEmitter") then
-                emitter.Enabled = true
-                -- Cập nhật màu cho multi keypoints
-                local originalColor = emitter.Color
-                local newKeypoints = {}
-                for _, keypoint in ipairs(originalColor.Keypoints) do
-                    table.insert(newKeypoints, ColorSequenceKeypoint.new(keypoint.Time, matchacc.HitEffects.HitEffect.Color))
+local HitChams = LPH_NO_VIRTUALIZE(function(Player)
+    if not matchacc.HitEffects.HitChams.Enabled then return end  -- Sử dụng matchacc từ script gốc
+    if Player and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+        Player.Character.Archivable = true
+        local Cloned = Player.Character:Clone()
+        Cloned.Name = "Player Clone"
+        local BodyParts = { "Head", "UpperTorso", "LowerTorso", "LeftUpperArm", "LeftLowerArm", "LeftHand", "RightUpperArm", "RightLowerArm", "RightHand", "LeftUpperLeg", "LeftLowerLeg", "LeftFoot", "RightUpperLeg", "RightLowerLeg", "RightFoot" }
+        for _, Part in ipairs(Cloned:GetChildren()) do
+            if Part:IsA("BasePart") then
+                local PartValid = false
+                for _, validPart in ipairs(BodyParts) do
+                    if Part.Name == validPart then
+                        PartValid = true
+                        break
+                    end
                 end
-                emitter.Color = ColorSequence.new(newKeypoints)
-
-                emitter:Emit(emitter.Rate or 1)  -- Emit với Rate nếu có, fallback 1
+                if not PartValid then
+                    Part:Destroy()
+                end
+            elseif Part:IsA("Accessory") or Part:IsA("Tool") or Part.Name == "face" or Part:IsA("Shirt") or Part:IsA("Pants") or Part:IsA("Hat") then
+                Part:Destroy()
             end
         end
-        task.delay(2, function()
-            if clonedAtt and clonedAtt.Parent then clonedAtt:Destroy() end
+        if Cloned:FindFirstChild("Humanoid") then
+            Cloned.Humanoid:Destroy()
+        end
+        for _, BodyPart in ipairs(Cloned:GetChildren()) do
+            if BodyPart:IsA("BasePart") then
+                BodyPart.CanCollide = false
+                BodyPart.Anchored = true
+                BodyPart.Transparency = matchacc.HitEffects.HitChams.Transparency
+                BodyPart.Color = matchacc.HitEffects.HitChams.Color
+                BodyPart.Material = matchacc.HitEffects.HitChams.Material
+            end
+        end
+        if Cloned:FindFirstChild("Head") then
+            local Head = Cloned.Head
+            Head.Transparency = matchacc.HitEffects.HitChams.Transparency
+            Head.Color = matchacc.HitEffects.HitChams.Color
+            Head.Material = matchacc.HitEffects.HitChams.Material
+            if Head:FindFirstChild("face") then
+                Head.face:Destroy()
+            end
+        end
+        Cloned.Parent = game.Workspace
+        local tweenInfo = TweenInfo.new(
+            matchacc.HitEffects.HitChams.Lifetime,
+            Enum.EasingStyle.Sine,
+            Enum.EasingDirection.InOut,
+            0,
+            true
+        )
+        for _, BodyPart in ipairs(Cloned:GetChildren()) do
+            if BodyPart:IsA("BasePart") then
+                local tween = TweenService:Create(BodyPart, tweenInfo, { Transparency = 1 })
+                tween:Play()
+            end
+        end
+        task.delay(matchacc.HitEffects.HitChams.Lifetime, function()
+            if Cloned and Cloned.Parent then
+                Cloned:Destroy()
+            end
         end)
     end
+end)
+local HitChamsSkeleton = LPH_NO_VIRTUALIZE(function(Player)
+    if not matchacc.HitEffects.HitSkeleton.Enabled then return end  -- Thêm HitSkeleton vào matchacc.HitEffects
+    if Player and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+        local bones = {
+            {"Head", "UpperTorso"},
+            {"UpperTorso", "LowerTorso"},
+            {"UpperTorso", "RightUpperArm"},
+            {"RightUpperArm", "RightLowerArm"},
+            {"RightLowerArm", "RightHand"},
+            {"UpperTorso", "LeftUpperArm"},
+            {"LeftUpperArm", "LeftLowerArm"},
+            {"LeftLowerArm", "LeftHand"},
+            {"LowerTorso", "RightUpperLeg"},
+            {"RightUpperLeg", "RightLowerLeg"},
+            {"RightLowerLeg", "RightFoot"},
+            {"LowerTorso", "LeftUpperLeg"},
+            {"LeftUpperLeg", "LeftLowerLeg"},
+            {"LeftLowerLeg", "LeftFoot"}
+        }
+        local lines = {}
+        for _, bonePair in ipairs(bones) do
+            local parentBone = Player.Character:FindFirstChild(bonePair[1])
+            local childBone = Player.Character:FindFirstChild(bonePair[2])
+            if parentBone and childBone then
+                local line = Instance.new("Part")
+                line.Size = Vector3.new(0.02, 0.02, (parentBone.Position - childBone.Position).Magnitude)
+                line.CFrame = CFrame.new(parentBone.Position, childBone.Position) * CFrame.new(0, 0, -line.Size.Z / 2)
+                line.Anchored = true
+                line.CanCollide = false
+                line.Transparency = matchacc.HitEffects.HitChams.Transparency  -- Sử dụng chung transparency
+                line.Color = matchacc.HitEffects.HitSkeleton.Color  -- Sử dụng Color mới
+                line.Material = Enum.Material.Neon
+                line.Parent = workspace
+                local tweenInfo = TweenInfo.new(matchacc.HitEffects.HitChams.Lifetime / 0.2, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+                local tween = TweenService:Create(line, tweenInfo, {Transparency = 1})
+                tween:Play()
+                table.insert(lines, line)
+            end
+        end
+        task.delay(matchacc.HitEffects.HitChams.Lifetime, function()
+            for _, line in ipairs(lines) do
+                if line and line.Parent then
+                    line:Destroy()
+                end
+            end
+        end)
+    end
+end)
+local Debris = game:GetService("Debris")
+
+-- Function to trigger hit effects
+local function TriggerHitEffects(hitPart, targetChar)
+    -- HitEffect (particle from container)
+    if matchacc.HitEffects.HitEffect.Enabled then
+        local effectType = matchacc.HitEffects.HitEffect.Type
+        local container = workspace:FindFirstChild("MatchaHitEffects")
+        if container then
+            local effect = container:FindFirstChild(effectType)
+            if effect then
+                local cloned = effect:Clone()
+                cloned.Parent = workspace
+                cloned.CFrame = hitPart.CFrame
+                local att = cloned:FindFirstChild("HitEffectAttachment")
+                if att then
+                    for _, emitter in ipairs(att:GetChildren()) do
+                        if emitter:IsA("ParticleEmitter") then
+                            emitter.Enabled = true
+                        end
+                    end
+                end
+                Debris:AddItem(cloned, matchacc.HitEffects.HitChams.Lifetime) -- Reuse lifetime from HitChams
+            end
+        end
+    end
+
+end
+local function levenshtein(s, t)
+    local m, n = #s, #t
+    if m == 0 then return n end
+    if n == 0 then return m end
+    local d = {}
+    for i = 0, m do
+        d[i] = {}
+        for j = 0, n do
+            d[i][j] = (i == 0 and j) or (j == 0 and i) or 0
+        end
+    end
+    for i = 1, m do
+        for j = 1, n do
+            local cost = (s:sub(i,i) == t:sub(j,j)) and 0 or 1
+            d[i][j] = math.min(
+                d[i-1][j] + 1,
+                d[i][j-1] + 1,
+                d[i-1][j-1] + cost
+            )
+        end
+    end
+    return d[m][n]
+end
+
+-- Hàm tìm player gần đúng tên nhất
+local function findClosestPlayer(query)
+    query = string.lower(query)
+    local bestMatch, bestScore = nil, math.huge
+    for _, plr in pairs(game.Players:GetPlayers()) do
+        local uname = string.lower(plr.Name)
+        local dname = string.lower(plr.DisplayName)
+        if string.find(uname, query) or string.find(dname, query) then
+            return plr
+        end
+        local score = math.min(levenshtein(uname, query), levenshtein(dname, query))
+        if score < bestScore then
+            bestScore = score
+            bestMatch = plr
+        end
+    end
+    return bestMatch
 end
 local FOVCircleEnabled = false
 local FOVCircleSize = 300
@@ -2416,14 +2454,6 @@ TargetAimTab:AddToggle('AutoStomp', {
     end
 })
 
-TargetAimTab:AddToggle('VoidResolver', {
-    Text = 'Void Resolver',
-    Default = false,
-    Callback = function(Value)
-        matchacc.TargetAim.VoidResolver = Value
-    end
-})
-
 local targetAimSpectateConnection
 TargetAimTab:AddToggle('SpectateTarget', {
     Text = 'Spectate Target',
@@ -2482,14 +2512,20 @@ TargetAimTab:AddToggle('SpectateTarget', {
 --local ChatGroup = Tabs.Main:AddLeftGroupbox('lol ez')
 local PlayersGroup = Tabs.Main:AddLeftGroupbox('Players')
 
-PlayersGroup:AddDropdown('AutoKillTarget', {
-    SpecialType = 'Player',
-    ExcludeLocalPlayer = true,
-    Multi = false,
-    Text = 'Target',
-    Searchable = true,
+-- Sửa cho AutoKill Target (single)
+PlayersGroup:AddInput('AutoKillTargetInput', {
+    Default = '',
+    Numeric = false,
+    Finished = true,
+    Text = 'Target Name',
     Callback = function(Value)
-        matchacc.AutoKill.Target = Value
+        local target = findClosestPlayer(Value)
+        if target then
+            matchacc.AutoKill.Target = target  -- Giả sử cần object, hoặc target.Name nếu là string
+            Library:Notify("Selected target: " .. target.Name)
+        else
+            Library:Notify("No matching player found.")
+        end
     end
 })
 PlayersGroup:AddButton('Teleport to Target', function()
@@ -2514,7 +2550,7 @@ PlayersGroup:AddButton('Teleport to Target', function()
     Library:Notify("Teleported to " .. matchacc.AutoKill.Target, 2)
 end)
 PlayersGroup:AddToggle('AutoKillEnabled', {
-    Text = 'Enabled',
+    Text = 'AutokillEnabled',
     Default = false,
     Callback = function(Value)
         matchacc.AutoKill.Enabled = Value
@@ -2654,6 +2690,19 @@ PlayersGroup:AddToggle('AutoKillAllEnabled', {
     end
 })
 local HitEffectsGroup = Tabs.Main:AddLeftGroupbox('Hit Effects')
+HitEffectsGroup:AddToggle('HitSkeleton', {
+    Text = 'Hit Skeleton',
+    Default = false,
+    Callback = function(Value)
+        matchacc.HitEffects.HitSkeleton.Enabled = Value
+    end
+}):AddColorPicker('HitSkeletonColor', {
+    Default = Color3.fromRGB(255, 255, 255),
+    Title = 'Skeleton Color',
+    Callback = function(Value)
+        matchacc.HitEffects.HitSkeleton.Color = Value
+    end
+})
 HitEffectsGroup:AddToggle('HitChamsEnabled', {
     Text = 'Hit Chams',
     Default = false,
@@ -2669,7 +2718,7 @@ HitEffectsGroup:AddToggle('HitChamsEnabled', {
 })
 
 HitEffectsGroup:AddSlider('HitChamsLifetime', {
-    Text = 'Hit Chams Lifetime (sec)',
+    Text = 'Hit Chams and skeleton Lifetime (sec)',
     Min = 1,
     Max = 10,
     Default = matchacc.HitEffects.HitChams.Lifetime,
@@ -2680,7 +2729,7 @@ HitEffectsGroup:AddSlider('HitChamsLifetime', {
 })
 
 HitEffectsGroup:AddSlider('HitChamsTransparency', {
-    Text = 'Hit Chams Transparency',
+    Text = 'Hit Chams and skeleton Transparency',
     Min = 0,
     Max = 1,
     Default = matchacc.HitEffects.HitChams.Transparency,
@@ -2699,6 +2748,7 @@ HitEffectsGroup:AddDropdown('HitChamsMaterial', {
         matchacc.HitEffects.HitChams.Material = Value
     end
 })
+
 HitEffectsGroup:AddToggle('HitEffectEnabled', {
     Text = 'Hit Effect',
     Default = false,
@@ -2716,7 +2766,7 @@ HitEffectsGroup:AddToggle('HitEffectEnabled', {
 HitEffectsGroup:AddDropdown('HitEffectType', {
     Values = {"Skibidi RedRizz", "Nova", "Crescent Slash", "Cosmic Explosion", "Coom", "Slash", "Atomic Slash", "Thunder", "Electric", "Circle", "Shock3", "Aura", "IDK", "Swirl", "AuraBurst"},
     Default = 0,
-    Multi = true,
+    Multi = false,
     Text = 'Effect Type',
     Callback = function(Value)
         matchacc.HitEffects.HitEffect.Type = Value
@@ -3023,28 +3073,135 @@ ChecksTab:AddSlider('FillTransparencySlider', {
         FillCircle.Transparency = Value
     end
 })
+pcall(function()
+    if InnerCircle then InnerCircle.Visible = false end
+    if OuterCircle then OuterCircle.Visible = false end
+    if FillCircle then FillCircle.Visible = false end
+end)
+
+-- Tạo GUI (nếu đã tồn tại thì reuse)
+local CoreGui = game:GetService("CoreGui")
+local existing = CoreGui:FindFirstChild("MatchaFOVGui")
+local FOVGui = existing or Instance.new("ScreenGui")
+if not existing then
+    FOVGui.Name = "MatchaFOVGui"
+    FOVGui.ResetOnSpawn = false
+    FOVGui.Parent = CoreGui
+end
+
+-- Frame chính (vòng tròn)
+local FOVFrame = FOVGui:FindFirstChild("FOVFrame") or Instance.new("Frame")
+FOVFrame.Name = "FOVFrame"
+FOVFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+FOVFrame.BackgroundTransparency = 1 -- we'll use gradient to show fill
+FOVFrame.BorderSizePixel = 0
+FOVFrame.Size = UDim2.new(0, FOVCircleSize * 2, 0, FOVCircleSize * 2)
+FOVFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+FOVFrame.Parent = FOVGui
+
+-- UICorner để làm tròn (hình tròn hoàn chỉnh)
+local corner = FOVFrame:FindFirstChildOfClass("UICorner") or Instance.new("UICorner")
+corner.Parent = FOVFrame
+corner.CornerRadius = UDim.new(1, 0)
+
+-- UIStroke (viền)
+local stroke = FOVFrame:FindFirstChildOfClass("UIStroke") or Instance.new("UIStroke")
+stroke.Parent = FOVFrame
+stroke.Thickness = 2
+stroke.Transparency = 0
+stroke.LineJoinMode = Enum.LineJoinMode.Miter
+
+-- UIGradient (fill)
+local uiGradient = FOVFrame:FindFirstChildOfClass("UIGradient") or Instance.new("UIGradient")
+uiGradient.Parent = FOVFrame
+uiGradient.Rotation = 0
+uiGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, GradientColor1 or Color3.fromRGB(255,255,255)),
+    ColorSequenceKeypoint.new(1, GradientColor2 or Color3.fromRGB(0,0,0))
+}
+
+-- Background "fill" rectangle to simulate transparency fill
+-- We add an ImageLabel as overlay to control transparency of fill (Frame background is transparent)
+local fillOverlay = FOVFrame:FindFirstChild("FillOverlay") or Instance.new("Frame")
+fillOverlay.Name = "FillOverlay"
+fillOverlay.Size = UDim2.new(1,0,1,0)
+fillOverlay.Position = UDim2.new(0,0,0,0)
+fillOverlay.BackgroundTransparency = 1 -- gradient handles color; transparency controlled by this frame's BackgroundTransparency if needed
+fillOverlay.Parent = FOVFrame
+
+-- Helper lerp color (nếu bạn cần chuyển màu dạng LERP)
+local function LerpColor(a, b, t)
+    t = math.clamp(t or 0, 0, 1)
+    return Color3.new(
+        a.R + (b.R - a.R) * t,
+        a.G + (b.G - a.G) * t,
+        a.B + (b.B - a.B) * t
+    )
+end
+
+-- Hàm cập nhật UIStroke màu theo gradient keypoint đầu (giống bạn muốn)
+local function UpdateStrokeColor()
+    local kp = uiGradient.Color.Keypoints[1] and uiGradient.Color.Keypoints[1].Value
+    if kp then
+        stroke.Color = Color3.new(kp.R, kp.G, kp.B)
+    end
+end
+
+-- Hàm cập nhật kích thước khi FOVCircleSize thay đổi
+local function UpdateFOVSize()
+    local r = math.max(2, tonumber(FOVCircleSize) or 125)
+    FOVFrame.Size = UDim2.new(0, r * 2, 0, r * 2)
+    FOVFrame.Position = UDim2.new(0.5, -r, 0.5, -r)
+end
+UpdateFOVSize()
+UpdateStrokeColor()
+
+-- Cập nhật vị trí theo chuột (PC) hoặc center (mobile)
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local function getFOVPosition()
+    if UserInputService.TouchEnabled and not UserInputService.MouseEnabled then
+        return Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    else
+        return UserInputService:GetMouseLocation()
+    end
+end
+
+-- Tốc độ quay gradient (thay đổi giá trị này để nhanh/chậm)
+local RotateSpeed = RotateThisDick or 4 -- nếu bạn đã có RotateThisDick ở script gốc thì reuse
+
+-- RenderStepped cập nhật mỗi frame
 RunService.RenderStepped:Connect(function()
-    if FOVCircleEnabled then
-        local pos
-        if UserInputService.TouchEnabled then
-            -- Mobile: tâm màn hình
-            pos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-        else
-            -- PC: vị trí chuột
-            pos = UserInputService:GetMouseLocation()
-        end
-        InnerCircle.Position = pos
-        OuterCircle.Position = pos
-        FillCircle.Position = pos
-        
-        if GradientFillEnabled then
-            -- Simulate gradient xoay bằng lerp color theo sin wave (xoay màu giữa 2 color)
-            local t = math.sin(tick() * 2) * 0.5 + 0.5 
-            local r = GradientColor1.R + (GradientColor2.R - GradientColor1.R) * t
-            local g = GradientColor1.G + (GradientColor2.G - GradientColor1.G) * t
-            local b = GradientColor1.B + (GradientColor2.B - GradientColor1.B) * t
-            FillCircle.Color = Color3.new(r, g, b)
-        end
+    -- Hiển thị/ẩn GUI dựa trên flag
+    FOVGui.Enabled = true
+    FOVFrame.Visible = (FOVCircleEnabled == true)
+
+    if not FOVCircleEnabled then return end
+
+    -- Cập nhật vị trí
+    local pos = getFOVPosition()
+    -- UserInputService:GetMouseLocation() trả tọa độ screen (x,y)
+    -- Chuyển sang UDim2: position offset đã set anchor 0.5,0.5 nên dùng offset -nửa kích thước
+    local x = pos.X
+    local y = pos.Y
+    -- đặt trực tiếp offset (udim) để chính xác theo chuột
+    local w = FOVFrame.Size.X.Offset
+    local h = FOVFrame.Size.Y.Offset
+    FOVFrame.Position = UDim2.new(0, x - w/2, 0, y - h/2)
+
+    -- Nếu bật gradient quay -> xoay UIGradient
+    if GradientFillEnabled then
+        uiGradient.Rotation = (uiGradient.Rotation + RotateSpeed) % 360
+        -- (nếu bạn muốn gradient đổi màu bằng sin lerp thay vì xoay, thay logic ở đây)
+        UpdateStrokeColor()
+    else
+        -- nếu ko bật gradient fill, set gradient thành 2 màu giống nhau (như fill tĩnh)
+        uiGradient.Color = ColorSequence.new{
+            ColorSequenceKeypoint.new(0, GradientColor1 or Color3.fromRGB(255,255,255)),
+            ColorSequenceKeypoint.new(1, GradientColor1 or Color3.fromRGB(255,255,255))
+        }
+        UpdateStrokeColor()
     end
 end)
 OptionsTab:AddInput('PredictionInput', {
@@ -3190,17 +3347,21 @@ KillAuraGroup:AddToggle('KillAuraVisualize', {
     end
 })
 
-KillAuraGroup:AddDropdown('KAWhitelist', {
-    SpecialType = 'Player',
-    ExcludeLocalPlayer = true,
-    Multi = true,
-    Searchable = true,
-    Text = 'Whitelist',
+KillAuraGroup:AddInput('KAWhitelistInput', {
+    Default = '',
+    Numeric = false,
+    Finished = true,
+    Text = 'Add to Whitelist',
     Callback = function(Value)
-        matchacc.KillAura.Whitelist = Value
+        local player = findClosestPlayer(Value)
+        if player and not table.find(matchacc.KillAura.Whitelist, player.Name) then
+            table.insert(matchacc.KillAura.Whitelist, player.Name)
+            Library:Notify("Added " .. player.Name .. " to whitelist!")
+        else
+            Library:Notify("Player not found or already in whitelist.")
+        end
     end
 })
-
 KillAuraGroup:AddToggle('StompAura', {
     Text = 'Stomp Aura',
     Default = false,
@@ -3808,7 +3969,7 @@ local function updateCamlock()
     end
     
     --// LẤY VELOCITY (RESOLVER HOẶC DEFAULT)
-    local velocity = target.Character:FindFirstChild(part).AssemblyLinearVelocity
+    local velocity = part.AssemblyLinearVelocity
     if getgenv().Matcha.Legit.Resolver and VelocityData[target] then
         velocity = VelocityData[target].Velocity
     end
@@ -4018,8 +4179,434 @@ ChinaHatGroup:AddSlider('ChinaHatScaleZ', {
         end
     end
 })
+
 local ESPGroup = Tabs.Visual:AddLeftGroupbox('ESP')
 
+getgenv().esp = {
+    players = {},
+    enabled = false,
+    fading = false,
+    espfadespeed = 5,
+    box = false,
+    boxcolor = Color3.fromRGB(255,255,255),
+    boxoutline = Color3.fromRGB(0,0,0),
+    boxtransparency = 0,
+    boxoutlinetransparency = 0,
+    health = false,
+    healthcolor = Color3.fromRGB(0,255,0),
+    healthoutline = Color3.fromRGB(0,0,0),
+    healthtransparency = 0,
+    healthoutlinetransparency = 0,
+    chams = false,
+    chamscolor = Color3.fromRGB(204,255,255),
+    chamsoutline = Color3.fromRGB(0,0,0),
+    chamstransparencyinline = 0.5,
+    chamstransparencyoutline = 0.5,
+    name = false,
+    namecolor = Color3.fromRGB(255,255,255),
+    nameoutline = Color3.fromRGB(0,0,0),
+    nametransparency = 0,
+    healthbartext = false,
+    healthbartextcolor = Color3.fromRGB(255,255,255),
+    healthbartextoutline = Color3.fromRGB(0,0,0),
+    healthbartexttransparency = 0,
+    renderdistance = 10000
+}
+getgenv().aimbot = {}
+
+function aimbot.isAlive(plr): alive
+    if plr then
+        return plr and plr.Character and plr.Character.Parent ~= nil and plr.Character:FindFirstChild("HumanoidRootPart") and plr.Character:FindFirstChild("Head") and plr.Character:FindFirstChild("Humanoid")
+    end
+end
+local LPH_JIT_ULTRA = LPH_JIT_ULTRA or function(...) return ... end
+spawn(LPH_JIT_ULTRA(function()
+    while task.wait() do
+        for i, v in next, players:GetPlayers() do
+            if v ~= localPlayer and aimbot.isAlive(v) then
+                local drawingInstances = esp.players[v]
+                if not drawingInstances then continue end
+                if esp.enabled then
+                    local character = v.Character
+                    local _, onscreen = Camera:WorldToScreenPoint(character.HumanoidRootPart.Position)
+                    local distfromchar = (Camera.CFrame.Position - v.Character.HumanoidRootPart.Position).Magnitude
+                    if esp.renderdistance < distfromchar then
+                        drawingInstances.Box.Visible = false
+                        drawingInstances.BoxOutline.Visible = false
+                        drawingInstances.Health.Visible = false
+                        drawingInstances.HealthOutline.Visible = false
+                        drawingInstances.Cham.Parent = nil
+                        drawingInstances.Name.Visible = false
+                        drawingInstances.HealthText.Visible = false
+                    else
+                        if onscreen then
+                            local charhum2D = Camera:WorldToViewportPoint(character.HumanoidRootPart.Position)
+                            local charSize = (Camera:WorldToViewportPoint(character.HumanoidRootPart.Position - Vector3.new(0, 3, 0)).Y - Camera:WorldToViewportPoint(character.HumanoidRootPart.Position + Vector3.new(0, 2.6, 0)).Y) / 2
+                            local boxSize = Vector2.new(math.floor(charSize * 1.1), math.floor(charSize * 1.9))
+                            local boxPosition = Vector2.new(math.floor(charhum2D.X - charSize * 1.1 / 2), math.floor(charhum2D.Y - charSize * 1.6 / 2))
+                            if esp.box then
+                                drawingInstances.Box.Size = boxSize
+                                drawingInstances.Box.Position = boxPosition
+                                drawingInstances.Box.Visible = true
+                                drawingInstances.Box.Color = esp.boxcolor
+                                drawingInstances.BoxOutline.Size = boxSize
+                                drawingInstances.BoxOutline.Position = boxPosition
+                                drawingInstances.BoxOutline.Visible = true
+                                drawingInstances.BoxOutline.Color = esp.boxoutline
+                                if esp.fading then
+                                    drawingInstances.Box.Transparency = 1 - (math.sin(tick() * esp.espfadespeed) + 1) / 2
+                                    drawingInstances.BoxOutline.Transparency = 1 - (math.sin(tick() * esp.espfadespeed) + 1) / 2
+                                else
+                                    drawingInstances.Box.Transparency = 1 - esp.boxtransparency
+                                    drawingInstances.BoxOutline.Transparency = 1 - esp.boxoutlinetransparency
+                                end
+                            else
+                                drawingInstances.Box.Visible = false
+                                drawingInstances.BoxOutline.Visible = false
+                            end
+                            if esp.health then
+                                drawingInstances.Health.From = Vector2.new((boxPosition.X - 5), boxPosition.Y + boxSize.Y)
+                                drawingInstances.Health.To = Vector2.new(drawingInstances.Health.From.X, drawingInstances.Health.From.Y - (character.Humanoid.Health / character.Humanoid.MaxHealth) * boxSize.Y)
+                                drawingInstances.Health.Color = esp.healthcolor
+                                drawingInstances.Health.Visible = true
+                                drawingInstances.HealthOutline.From = Vector2.new(drawingInstances.Health.From.X, boxPosition.Y + boxSize.Y + 1)
+                                drawingInstances.HealthOutline.To = Vector2.new(drawingInstances.Health.From.X, (drawingInstances.Health.From.Y - 1 * boxSize.Y) -1)
+                                drawingInstances.HealthOutline.Color = esp.healthoutline
+                                drawingInstances.HealthOutline.Visible = true
+                                if esp.fading then
+                                    drawingInstances.Health.Transparency = 1 - (math.sin(tick() * esp.espfadespeed) + 1) / 2
+                                    drawingInstances.HealthOutline.Transparency = 1 - (math.sin(tick() * esp.espfadespeed) + 1) / 2
+                                else
+                                    drawingInstances.Health.Transparency = 1 - esp.healthtransparency
+                                    drawingInstances.HealthOutline.Transparency = 1 - esp.healthoutlinetransparency
+                                end
+                                if esp.healthbartext then
+                                    drawingInstances.HealthText.Visible = true
+                                    drawingInstances.HealthText.Text = string.format("%s", math.round(character.Humanoid.Health) .. "%")
+                                    drawingInstances.HealthText.Position = Vector2.new(drawingInstances.Health.From.X - 15, drawingInstances.Health.From.Y - (character.Humanoid.Health / character.Humanoid.MaxHealth) * boxSize.Y)
+                                    drawingInstances.HealthText.Color = esp.healthbartextcolor
+                                    drawingInstances.HealthText.OutlineColor = esp.healthbartextoutline
+                                    drawingInstances.HealthText.Font = Drawing.Fonts.Plex
+                                    if esp.fading then
+                                        drawingInstances.HealthText.Transparency = 1 - (math.sin(tick() * esp.espfadespeed) + 1) / 2
+                                    else
+                                        drawingInstances.HealthText.Transparency = 1 - esp.healthbartexttransparency
+                                    end
+                                else
+                                    drawingInstances.HealthText.Visible = false
+                                end
+                            else
+                                drawingInstances.Health.Visible = false
+                                drawingInstances.HealthOutline.Visible = false
+                                drawingInstances.HealthText.Visible = false
+                            end
+                            if esp.chams then
+                                drawingInstances.Cham.Parent = character
+                                drawingInstances.Cham.FillColor = esp.chamscolor
+                                drawingInstances.Cham.OutlineColor = esp.chamsoutline
+                                if esp.fading then
+                                    drawingInstances.Cham.FillTransparency = (math.sin(tick() * esp.espfadespeed) + 1) / 2
+                                    drawingInstances.Cham.OutlineTransparency = (math.sin(tick() * esp.espfadespeed) + 1) / 2
+                                else
+                                    drawingInstances.Cham.FillTransparency = esp.chamstransparencyinline
+                                    drawingInstances.Cham.OutlineTransparency = esp.chamstransparencyoutline
+                                end
+                            else
+                                drawingInstances.Cham.Parent = nil
+                            end
+                            if esp.name then
+                                drawingInstances.Name.Visible = true
+                                drawingInstances.Name.Text = string.format("<%s>", character.Humanoid.DisplayName)
+                                drawingInstances.Name.Position = Vector2.new(boxSize.X / 2 + boxPosition.X, boxPosition.Y - 16)
+                                drawingInstances.Name.Color = esp.namecolor
+                                drawingInstances.Name.OutlineColor = esp.nameoutline
+                                drawingInstances.Name.Font = Drawing.Fonts.Plex
+                                if esp.fading then
+                                    drawingInstances.Name.Transparency = 1 - (math.sin(tick() * esp.espfadespeed) + 1) / 2
+                                else
+                                    drawingInstances.Name.Transparency = 1 - esp.nametransparency
+                                end
+                            else
+                                drawingInstances.Name.Visible = false
+                            end
+                        else
+                            drawingInstances.Box.Visible = false
+                            drawingInstances.BoxOutline.Visible = false
+                            drawingInstances.Health.Visible = false
+                            drawingInstances.HealthOutline.Visible = false
+                            drawingInstances.Cham.Parent = nil
+                            drawingInstances.Name.Visible = false
+                            drawingInstances.HealthText.Visible = false
+                        end
+                    end
+                else
+                    drawingInstances.Box.Visible = false
+                    drawingInstances.BoxOutline.Visible = false
+                    drawingInstances.Health.Visible = false
+                    drawingInstances.HealthOutline.Visible = false
+                    drawingInstances.Cham.Parent = nil
+                    drawingInstances.Name.Visible = false
+                    drawingInstances.HealthText.Visible = false
+                end
+            end
+        end
+    end
+end))
+players.PlayerAdded:Connect(LPH_JIT_ULTRA(function(player)
+    if player == localPlayer then return end
+    esp.players[player] = {
+        Box = Drawing.new("Square"),
+        BoxOutline = Drawing.new("Square"),
+        Health = Drawing.new("Line"),
+        HealthOutline = Drawing.new("Line"),
+        Cham = Instance.new("Highlight"),
+        Name = Drawing.new("Text"),
+        HealthText = Drawing.new("Text")
+    }
+    esp.players[player].Box.Visible = false
+    esp.players[player].Box.Filled = false
+    esp.players[player].Box.ZIndex = 999
+    esp.players[player].Box.Thickness = 1
+    esp.players[player].Box.Transparency = 1
+    esp.players[player].BoxOutline.Visible = false
+    esp.players[player].BoxOutline.Filled = false
+    esp.players[player].BoxOutline.ZIndex = 1
+    esp.players[player].BoxOutline.Color = Color3.fromRGB(0,0,0)
+    esp.players[player].BoxOutline.Thickness = 3
+    esp.players[player].BoxOutline.Transparency = 1
+    esp.players[player].Health.Visible = false
+    esp.players[player].Health.ZIndex = 999
+    esp.players[player].Health.Thickness = 1
+    esp.players[player].Health.Color = Color3.fromRGB(0,255,0)
+    esp.players[player].Health.Transparency = 1
+    esp.players[player].HealthOutline.Visible = false
+    esp.players[player].HealthOutline.ZIndex = 0
+    esp.players[player].HealthOutline.Thickness = 3
+    esp.players[player].HealthOutline.Color = Color3.fromRGB(0,0,0)
+    esp.players[player].HealthOutline.Transparency = 1
+    esp.players[player].Name.Visible = false
+    esp.players[player].Name.Size = 13
+    esp.players[player].Name.Center = true
+    esp.players[player].Name.Outline = true
+    esp.players[player].Name.Font = Drawing.Fonts.Plex
+    esp.players[player].Name.Color = Color3.fromRGB(255,255,255)
+    esp.players[player].Name.Transparency = 1
+    esp.players[player].HealthText.Visible = false
+    esp.players[player].HealthText.Size = 13
+    esp.players[player].HealthText.Center = true
+    esp.players[player].HealthText.Outline = true
+    esp.players[player].HealthText.Font = Drawing.Fonts.Plex
+    esp.players[player].HealthText.Color = Color3.fromRGB(255,255,255)
+    esp.players[player].HealthText.Transparency = 1
+end))
+players.PlayerRemoving:Connect(LPH_JIT_ULTRA(function(player)
+    if esp.players[player] then
+        for _, v in pairs(esp.players[player]) do
+            if v.Remove then
+                v:Remove()
+            elseif typeof(v) == "Instance" then
+                v.Parent = nil
+                v:Destroy()
+            end
+        end
+        esp.players[player] = nil
+    end
+end))
+for i, v in next, players:GetPlayers() do
+    if v ~= localPlayer then
+        esp.players[v] = {
+            Box = Drawing.new("Square"),
+            BoxOutline = Drawing.new("Square"),
+            Health = Drawing.new("Line"),
+            HealthOutline = Drawing.new("Line"),
+            Cham = Instance.new("Highlight"),
+            Name = Drawing.new("Text"),
+            HealthText = Drawing.new("Text")
+        }
+        esp.players[v].Box.Visible = false
+        esp.players[v].Box.Filled = false
+        esp.players[v].Box.ZIndex = 999
+        esp.players[v].Box.Thickness = 1
+        esp.players[v].BoxOutline.Visible = false
+        esp.players[v].BoxOutline.Filled = false
+        esp.players[v].BoxOutline.ZIndex = 1
+        esp.players[v].BoxOutline.Color = Color3.fromRGB(0,0,0)
+        esp.players[v].BoxOutline.Thickness = 3
+        esp.players[v].Health.Visible = false
+        esp.players[v].Health.ZIndex = 999
+        esp.players[v].Health.Thickness = 1
+        esp.players[v].Health.Color = Color3.fromRGB(0,255,0)
+        esp.players[v].HealthOutline.Visible = false
+        esp.players[v].HealthOutline.ZIndex = 0
+        esp.players[v].HealthOutline.Thickness = 3
+        esp.players[v].HealthOutline.Color = Color3.fromRGB(0,0,0)
+        esp.players[v].Name.Visible = false
+        esp.players[v].Name.Size = 13
+        esp.players[v].Name.Center = true
+        esp.players[v].Name.Outline = true
+        esp.players[v].Name.Font = Drawing.Fonts.Plex
+        esp.players[v].Name.Color = Color3.fromRGB(255,255,255)
+        esp.players[v].HealthText.Visible = false
+        esp.players[v].HealthText.Size = 13
+        esp.players[v].HealthText.Center = true
+        esp.players[v].HealthText.Outline = true
+        esp.players[v].HealthText.Font = Drawing.Fonts.Plex
+        esp.players[v].HealthText.Color = Color3.fromRGB(255,255,255)
+    end
+end
+ESPGroup:AddToggle('ESPEnabled', {
+    Text = 'Enabled',
+    Default = false,
+    Callback = function(Value)
+        esp.enabled = Value
+    end
+})
+
+ESPGroup:AddToggle('ESPBox', {
+    Text = 'Box',
+    Default = false,
+    Callback = function(Value)
+        esp.box = Value
+    end
+}):AddColorPicker('ESPBoxInline', {
+    Default = Color3.fromRGB(255,255,255),
+    Title = 'Inline',
+    Transparency = 0,
+    Callback = function(Value)
+        esp.boxcolor = Value
+        esp.boxtransparency = Value.Transparency or 0
+    end
+}):AddColorPicker('ESPBoxOutline', {
+    Default = Color3.fromRGB(0,0,0),
+    Title = 'Outline',
+    Transparency = 0,
+    Callback = function(Value)
+        esp.boxoutline = Value
+        esp.boxoutlinetransparency = Value.Transparency or 0
+    end
+})
+
+ESPGroup:AddToggle('ESPHealth', {
+    Text = 'Health',
+    Default = false,
+    Callback = function(Value)
+        esp.health = Value
+    end
+}):AddColorPicker('ESPHealthInline', {
+    Default = Color3.fromRGB(0,255,0),
+    Title = 'Inline',
+    Transparency = 0,
+    Callback = function(Value)
+        esp.healthcolor = Value
+        esp.healthtransparency = Value.Transparency or 0
+    end
+}):AddColorPicker('ESPHealthOutline', {
+    Default = Color3.fromRGB(0,0,0),
+    Title = 'Outline',
+    Transparency = 0,
+    Callback = function(Value)
+        esp.healthoutline = Value
+        esp.healthoutlinetransparency = Value.Transparency or 0
+    end
+})
+
+ESPGroup:AddToggle('ESPHealthBarText', {
+    Text = 'Health Bar Text',
+    Default = false,
+    Callback = function(Value)
+        esp.healthbartext = Value
+    end
+}):AddColorPicker('ESPHealthBarTextInline', {
+    Default = Color3.fromRGB(255,255,255),
+    Title = 'Inline',
+    Transparency = 0,
+    Callback = function(Value)
+        esp.healthbartextcolor = Value
+        esp.healthbartexttransparency = Value.Transparency or 0
+    end
+}):AddColorPicker('ESPHealthBarTextOutline', {
+    Default = Color3.fromRGB(0,0,0),
+    Title = 'Outline',
+    Callback = function(Value)
+        esp.healthbartextoutline = Value
+    end
+})
+
+ESPGroup:AddToggle('ESPChams', {
+    Text = 'Chams',
+    Default = false,
+    Callback = function(Value)
+        esp.chams = Value
+    end
+}):AddColorPicker('ESPChamsInline', {
+    Default = Color3.fromRGB(255,255,255),
+    Title = 'Inline',
+    Transparency = 0.5,
+    Callback = function(Value)
+        esp.chamscolor = Value
+        esp.chamstransparencyinline = Value.Transparency or 0.5
+    end
+}):AddColorPicker('ESPChamsOutline', {
+    Default = Color3.fromRGB(0,0,0),
+    Title = 'Outline',
+    Transparency = 0.5,
+    Callback = function(Value)
+        esp.chamsoutline = Value
+        esp.chamstransparencyoutline = Value.Transparency or 0.5
+    end
+})
+
+ESPGroup:AddToggle('ESPName', {
+    Text = 'Name',
+    Default = false,
+    Callback = function(Value)
+        esp.name = Value
+    end
+}):AddColorPicker('ESPNameInline', {
+    Default = Color3.fromRGB(255,255,255),
+    Title = 'Inline',
+    Transparency = 0,
+    Callback = function(Value)
+        esp.namecolor = Value
+        esp.nametransparency = Value.Transparency or 0
+    end
+}):AddColorPicker('ESPNameOutline', {
+    Default = Color3.fromRGB(0,0,0),
+    Title = 'Outline',
+    Callback = function(Value)
+        esp.nameoutline = Value
+    end
+})
+
+ESPGroup:AddSlider('ESPRenderDistance', {
+    Text = 'Render Distance',
+    Default = 10000,
+    Min = 1,
+    Max = 10000,
+    Rounding = 0,
+    Callback = function(Value)
+        esp.renderdistance = Value
+    end
+})
+
+ESPGroup:AddToggle('ESPFade', {
+    Text = 'ESP Fade',
+    Default = false,
+    Callback = function(Value)
+        esp.fading = Value
+    end
+})
+
+ESPGroup:AddSlider('ESPFadeSpeed', {
+    Text = 'ESP Fade Speed',
+    Default = 5,
+    Min = 1,
+    Max = 10,
+    Rounding = 1,
+    Callback = function(Value)
+        esp.espfadespeed = Value
+    end
+})
 coroutine.wrap(function()
 -- Table cho các aura (hỗ trợ nhiều)
 local Auras = {
@@ -5023,6 +5610,120 @@ BulletTracerGroup:AddSlider('BulletTracersTimeAlive', {
         matchacc.BulletTracers.TimeAlive = Value
     end
 })
+local HudUi = Tabs.Visual:AddLeftGroupbox('Hud Changer')
+
+local defaultTextHP = " Health "
+local defaultTextArmor = "                   Armor"
+local defaultTextEnergy = "Dark Energy              "
+
+local defaultColorHP = Color3.new(0.941176, 0.031373, 0.819608)
+local defaultColorArmor = Color3.new(0.376471, 0.031373, 0.933333)
+local defaultColorEnergy = Color3.new(0.768627, 0.039216, 0.952941)
+
+local textHP, textArmor, textEnergy = defaultTextHP, defaultTextArmor, defaultTextEnergy
+local colorHP, colorArmor, colorEnergy = defaultColorHP, defaultColorArmor, defaultColorEnergy
+
+local toggleHP, toggleArmor, toggleEnergy = false, false, false
+
+local function skibiditoilet()
+    local player = game.Players.LocalPlayer
+    local playerGui = player:WaitForChild("PlayerGui")
+    local gui = playerGui:WaitForChild("MainScreenGui").Bar
+
+    if toggleHP then
+        gui.HP.TextLabel.Text = textHP
+        gui.HP.bar.BackgroundColor3 = colorHP
+    end
+
+    if toggleArmor then
+        gui.Armor.TextLabel.Text = textArmor
+        gui.Armor.bar.BackgroundColor3 = colorArmor
+    end
+
+    if toggleEnergy then
+        gui.Energy.TextLabel.Text = textEnergy
+        gui.Energy.bar.BackgroundColor3 = colorEnergy
+    end
+end
+
+HudUi:AddToggle('ToggleHP', {
+    Text = 'Customize Health',
+    Default = false,
+    Callback = function(state)
+        toggleHP = state
+        skibiditoilet()
+    end
+}):AddColorPicker('ColorHP', {
+    Text = 'Health Color',
+    Default = defaultColorHP,
+    Callback = function(value)
+        if toggleHP then colorHP = value skibiditoilet() end
+    end
+})
+
+HudUi:AddInput('TextHP', {
+    Text = 'Health Text',
+    Default = defaultTextHP,
+    Callback = function(value)
+        if toggleHP then textHP = value skibiditoilet() end
+    end
+})
+
+HudUi:AddToggle('ToggleArmor', {
+    Text = 'Customize Armor',
+    Default = false,
+    Callback = function(state)
+        toggleArmor = state
+        skibiditoilet()
+    end
+}):AddColorPicker('ColorArmor', {
+    Text = 'Armor Color',
+    Default = defaultColorArmor,
+    Callback = function(value)
+        if toggleArmor then colorArmor = value skibiditoilet() end
+    end
+})
+
+HudUi:AddInput('TextArmor', {
+    Text = 'Armor Text',
+    Default = defaultTextArmor,
+    Callback = function(value)
+        if toggleArmor then textArmor = value skibiditoilet() end
+    end
+})
+
+HudUi:AddToggle('ToggleEnergy', {
+    Text = 'Customize Energy',
+    Default = false,
+    Callback = function(state)
+        toggleEnergy = state
+        skibiditoilet()
+    end
+}):AddColorPicker('ColorEnergy', {
+    Text = 'Energy Color',
+    Default = defaultColorEnergy,
+    Callback = function(value)
+        if toggleEnergy then colorEnergy = value skibiditoilet() end
+    end
+})
+
+HudUi:AddInput('TextEnergy', {
+    Text = 'Energy Text',
+    Default = defaultTextEnergy,
+    Callback = function(value)
+        if toggleEnergy then textEnergy = value skibiditoilet() end
+    end
+})
+
+local player = game.Players.LocalPlayer
+
+player.CharacterAdded:Connect(function()
+    if toggleHP or toggleArmor or toggleEnergy then
+        player:WaitForChild("PlayerGui")
+        skibiditoilet()
+    end
+end)
+
 end)()
 local CrosshairGroup = Tabs.Visual:AddRightGroupbox('Crosshair')
 local Client = players.LocalPlayer
@@ -5456,13 +6157,18 @@ local function snowParticleEmitter()
     snowEmitter.ShapeInOut = Enum.ParticleEmitterShapeInOut.Outward
     snowEmitter.ShapePartial = 1
     snowEmitter.ShapeStyle = Enum.ParticleEmitterShapeStyle.Volume
-    snowEmitter.Size = NumberSequence.new(0.2)
+    snowEmitter.Size = NumberSequence.new(0.4)
     snowEmitter.Speed = NumberRange.new(SnowSettings.Speed)
-    snowEmitter.SpreadAngle = Vector2.new(500,500)
+    snowEmitter.SpreadAngle = Vector2.new(90,90)
     snowEmitter.Squash = NumberSequence.new(0)
-    snowEmitter.Texture = "rbxassetid://118641183"
+    snowEmitter.Texture = "rbxassetid://129110349"
     snowEmitter.TimeScale = 1
-    snowEmitter.Transparency = NumberSequence.new(0.2)
+	snowEmitter.Transparency = NumberSequence.new({
+	    NumberSequenceKeypoint.new(0,        0.8625),
+	    NumberSequenceKeypoint.new(0.15,     0),
+	    NumberSequenceKeypoint.new(0.196326, 0.70625),
+	    NumberSequenceKeypoint.new(1,        0),
+	})
     snowEmitter.VelocityInheritance = 0
     snowEmitter.WindAffectsDrag = false
     snowEmitter.ZOffset = 0
@@ -6279,75 +6985,69 @@ RunService.Heartbeat:Connect(function(dt)
         end
     end
 end)
+coroutine.wrap(function()
 if getnamecallmethod then
-local Meta = getrawmetatable(game)
-local backupindex = Meta.__index
-setreadonly(Meta, false)
-
-Meta.__index = function(t, k)
-    if t == Mouse and (k == "Hit" or k == "hit") then
-        if matchacc.TargetAim.Enabled and matchacc.TargetAim.Target ~= "None" and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local TargetPlayer = Players:FindFirstChild(matchacc.TargetAim.Target)
-            if TargetPlayer and TargetPlayer.Character and TargetPlayer.Character:FindFirstChild("Humanoid") and TargetPlayer.Character.Humanoid.Health > 0 and not TargetPlayer.Character:FindFirstChild("ForceField") then
-                
-                -- Team check
-                if matchacc.Checks.Team and TargetPlayer.Team == LocalPlayer.Team then return backupindex(t, k) end
-                
-                -- Wall check (nếu bật)
-                if matchacc.Checks.Wall then
-                    local rayParams = RaycastParams.new()
-                    rayParams.FilterDescendantsInstances = {LocalPlayer.Character}
-                    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
-                    local result = workspace:Raycast(Camera.CFrame.Position, (TargetPlayer.Character.HumanoidRootPart.Position - Camera.CFrame.Position).Unit * 1000, rayParams)
-                    if result and result.Instance.CanCollide then
-                        return backupindex(t, k)
-                    end
-                end
-
-                -- Hitpart & Airpart logic
-                local partName = matchacc.TargetAim.HitPart
-                if matchacc.TargetAim.AirPartEnabled then
-                    local targetInAir = TargetPlayer.Character.Humanoid:GetState() == Enum.HumanoidStateType.Freefall or TargetPlayer.Character.Humanoid:GetState() == Enum.HumanoidStateType.Jumping
-                    local selfInAir = LocalPlayer.Character.Humanoid:GetState() == Enum.HumanoidStateType.Freefall or LocalPlayer.Character.Humanoid:GetState() == Enum.HumanoidStateType.Jumping
-                    if targetInAir or selfInAir then
-                        partName = matchacc.TargetAim.AirPart
-                    end
-                end
-
-                local targetPart = TargetPlayer.Character:FindFirstChild(partName)
-                if targetPart then
-                    local vel = VelocityTracker[TargetPlayer] and VelocityTracker[TargetPlayer].Velocity or targetPart.Velocity
-
-                    -- Prediction logic
-                    local pred = matchacc.TargetAim.Prediction -- manual default
-                    if matchacc.TargetAim.AutoPredict then
-                        if matchacc.TargetAim.PredictMode == "Ping Sets" then
-                            pred = currentPred
-                        elseif matchacc.TargetAim.PredictMode == "Calculate" then
-                            local ping = Stats.Network.ServerStatsItem["Data Ping"]:GetValue() / 1000
-                            pred = vel.Magnitude * 0.0368 + ping -- 0.0368 cực kỳ chuẩn cho hầu hết hood game (có thể chỉnh thành 0.037/0.0375 nếu muốn mạnh hơn)
+    local Meta = getrawmetatable(game)
+    local backupindex = Meta.__index
+    setreadonly(Meta, false)
+    Meta.__index = function(t, k)
+        if t == Mouse and (k == "Hit" or k == "hit") then
+            if matchacc.TargetAim.Enabled and matchacc.TargetAim.Target ~= "None" and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local TargetPlayer = Players:FindFirstChild(matchacc.TargetAim.Target)
+                if TargetPlayer and TargetPlayer.Character and TargetPlayer.Character:FindFirstChild("Humanoid") and TargetPlayer.Character.Humanoid.Health > 0 and not TargetPlayer.Character:FindFirstChild("ForceField") then
+                   
+                    -- Team check
+                    if matchacc.Checks.Team and TargetPlayer.Team == LocalPlayer.Team then return backupindex(t, k) end
+                   
+                    -- Wall check (nếu bật)
+                    if matchacc.Checks.Wall then
+                        local rayParams = RaycastParams.new()
+                        rayParams.FilterDescendantsInstances = {LocalPlayer.Character}
+                        rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+                        local result = workspace:Raycast(Camera.CFrame.Position, (TargetPlayer.Character.HumanoidRootPart.Position - Camera.CFrame.Position).Unit * 1000, rayParams)
+                        if result and result.Instance.CanCollide then
+                            return backupindex(t, k)
                         end
                     end
-
-                    -- Resolver (boost prediction khi bật)
-                    if matchacc.TargetAim.Resolver then
-                        pred = pred + (vel.Magnitude * 0.015) -- resolver boost (có thể tăng/giảm tùy ý)
+                    -- Hitpart & Airpart logic
+                    local partName = matchacc.TargetAim.HitPart
+                    if matchacc.TargetAim.AirPartEnabled then
+                        local targetInAir = TargetPlayer.Character.Humanoid:GetState() == Enum.HumanoidStateType.Freefall or TargetPlayer.Character.Humanoid:GetState() == Enum.HumanoidStateType.Jumping
+                        local selfInAir = LocalPlayer.Character.Humanoid:GetState() == Enum.HumanoidStateType.Freefall or LocalPlayer.Character.Humanoid:GetState() == Enum.HumanoidStateType.Jumping
+                        if targetInAir or selfInAir then
+                            partName = matchacc.TargetAim.AirPart
+                        end
                     end
-
-                    -- Jump offset
-                    local yOffset = matchacc.TargetAim.Offset
-                    if TargetPlayer.Character.Humanoid:GetState() == Enum.HumanoidStateType.Jumping or vel.Y > 20 then
-                        yOffset = matchacc.TargetAim.JumpOffset
+                    local targetPart = TargetPlayer.Character:FindFirstChild(partName)
+                    if targetPart then
+                        local vel = VelocityTracker[TargetPlayer] and VelocityTracker[TargetPlayer].Velocity or targetPart.Velocity
+                        -- Prediction logic
+                        local pred = matchacc.TargetAim.Prediction -- manual default
+                        if matchacc.TargetAim.AutoPredict then
+                            if matchacc.TargetAim.PredictMode == "Ping Sets" then
+                                pred = currentPred
+                            elseif matchacc.TargetAim.PredictMode == "Calculate" then
+                                local ping = Stats.Network.ServerStatsItem["Data Ping"]:GetValue() / 1000
+                                pred = 0.0368 + ping -- sửa: constant time + ping time (seconds)
+                            end
+                        end
+                        -- Resolver (boost prediction khi bật)
+                        if matchacc.TargetAim.Resolver then
+                            pred = pred + 0.015 -- resolver boost time (seconds, có thể chỉnh)
+                        end
+                        -- Jump offset
+                        local yOffset = matchacc.TargetAim.Offset
+                        if TargetPlayer.Character.Humanoid:GetState() == Enum.HumanoidStateType.Freefall or vel.Y > 20 then
+                            yOffset = matchacc.TargetAim.JumpOffset
+                        end
+                        local predictedPos = targetPart.Position + (vel * pred) + Vector3.new(0, yOffset, 0)
+                        return CFrame.new(Camera.CFrame.Position, predictedPos)
                     end
-
-                    local predictedPos = targetPart.Position + (vel * pred) + Vector3.new(0, yOffset, 0)
-                    return CFrame.new(predictedPos)
                 end
             end
         end
+        return backupindex(t, k)
     end
-    return backupindex(t, k)
-end
 end
 if getnamecallmethod and game.GameId == 9825515356 then
     local OldNamecall
@@ -6508,7 +7208,6 @@ RunService.Heartbeat:Connect(function(dt)
         if matchacc.TargetAim.Strafe and matchacc.TargetAim.Target ~= "None" and TargetPlayer and TargetPlayer.Character and TargetPlayer.Character:FindFirstChild("Head") and not (AutoArmorActive or AutoLoadoutActive or BuyingSingleActive or BuyingAmmoActive) then
             if not TargetPlayer.Character:FindFirstChild("ForceField") then
                 if not KnockCheck(TargetPlayer) and localPlayer.Character.BodyEffects.Reload.Value == false then
-                    if matchacc.TargetAim.VoidResolver and (TargetPlayer.Character.HumanoidRootPart.Position - Vector3.new(0, 0, 0)).Magnitude > 5000 then return end
                     local currentPosition = TargetPlayer.Character.Head.Position
                     local lastPosition = previousPositions[TargetPlayer] or currentPosition
                     local estimatedVelocity = (currentPosition - lastPosition) / dt
@@ -6571,14 +7270,14 @@ RunService.Heartbeat:Connect(function(dt)
                     end)
                 end
             else
-                hrp.CFrame += Vector3.new(math.random(-11223344556677889900,11223344556677889900), math.random(0,11223344556677889900), math.random(-11223344556677889900,11223344556677889900))
+                hrp.CFrame += Vector3.new(math.random(-100000,100000), math.random(0,100000), math.random(-100000,100000))
                 RunService:BindToRenderStep("RestoreRandom", 199, function()
                     hrp.CFrame = SavedPosition
                     RunService:UnbindFromRenderStep("RestoreRandom")
                 end)
             end
-        elseif TargetPlayer.Character:FindFirstChild("ForceField") or not Tool then
-            hrp.CFrame += Vector3.new(math.random(-11223344556677889900,11223344556677889900), math.random(0,11223344556677889900), math.random(-11223344556677889900,11223344556677889900))
+        elseif TargetPlayer.Character:FindFirstChild("ForceField") then
+            hrp.CFrame += Vector3.new(math.random(-100000,100000), math.random(0,100000), math.random(-100000,100000))
             RunService:BindToRenderStep("RestoreForceField", 199, function()
                 hrp.CFrame = SavedPosition
                 RunService:UnbindFromRenderStep("RestoreForceField")
@@ -6725,13 +7424,16 @@ RunService.Heartbeat:Connect(function(dt)
 			
 			            -- Hit Chams (chỉ khi đang target bằng AutoKill hoặc TargetAim)
 			            if matchacc.HitEffects.HitChams.Enabled then
-			                createHitChamWithFade(Target)
+			                HitChams(Target)
 			            end
                         if matchacc.HitEffects.HitEffect.Enabled then
-                            playHitEffect(Target)
+                            local hitPart = Target:FindFirstChild(matchacc.TargetAim.HitPart) or Target:FindFirstChild("HumanoidRootPart")
+                            TriggerHitEffects(hitPart, Target)
                         end
 			        end
-			
+                    if matchacc.HitEffects.HitSkeleton.Enabled then
+                        HitChamsSkeleton(Target)
+                    end
 			        previousTargetHealth[Target.Name] = curr
 			    end
 			end
@@ -6758,10 +7460,14 @@ RunService.Heartbeat:Connect(function(dt)
 	
 	            -- Hit Chams
 	            if matchacc.HitEffects.HitChams.Enabled then
-	                createHitChamWithFade(TargetPlayer)
+	                HitChams(TargetPlayer)
 	            end
-				if matchacc.HitEffects.HitEffect.Enabled then
-					playHitEffect(TargetPlayer)
+                if matchacc.HitEffects.HitEffect.Enabled then
+                    local hitPart = TargetPlayer:FindFirstChild("HumanoidRootPart")
+                    TriggerHitEffects(hitPart, TargetPlayer)
+                end
+                if matchacc.HitEffects.HitSkeleton.Enabled then
+					HitChamsSkeleton(TargetPlayer)
 				end
 	        end
 	
@@ -6897,7 +7603,6 @@ RunService.Heartbeat:Connect(function(dt)
         local TargetPlayer = players:FindFirstChild(matchacc.TargetAim.Target)
         if TargetPlayer then
             if TargetPlayer.Character ~= lastTargetCharacter and lastTargetCharacter then
-                Library:Notify(TargetPlayer.Name .. " respawned", 3)
                 previousKnock = false
                 previousDead = false
             end
@@ -6990,11 +7695,6 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
                 local bodyEffects = TargetPlayer.Character:FindFirstChild("BodyEffects")
                 local isDead = bodyEffects and bodyEffects:FindFirstChild("Dead") and bodyEffects.Dead.Value
                 if ((not KnockCheck(TargetPlayer)) or (matchacc.TargetAim.AutoStomp and isDead == false)) and localPlayer.Character and localPlayer.Character:FindFirstChild("BodyEffects") and localPlayer.Character.BodyEffects:FindFirstChild("Reload") and localPlayer.Character.BodyEffects.Reload.Value == false then
-                    if matchacc.TargetAim.VoidResolver then
-                        if (TargetPlayer.Character.HumanoidRootPart.Position - Vector3.new(0, 0, 0)).Magnitude > 5000 then
-                            return
-                        end
-                    end
                     TargetAimActive = true
                 end
             end
@@ -7182,7 +7882,7 @@ RunService.Heartbeat:Connect(function(dt)
                             Library:Notify("Matcha.cc - Shooting Target.", 1)
                             MainEvent:FireServer("ShootGun", toolHandle, toolHandle.Position, Target.Character.Head.Position, targetHead, Vector3.new(0, 1, 0))
                         else
-                            localPlayer.Character.HumanoidRootPart.CFrame += Vector3.new(math.random(-11223344556677889900,11223344556677889900), math.random(0,11223344556677889900), math.random(-11223344556677889900,11223344556677889900))
+                            localPlayer.Character.HumanoidRootPart.CFrame += Vector3.new(math.random(-1000000,1000000), math.random(0,1000000), math.random(-1000000,1000000))
                             Library:Notify("Matcha.cc - Waiting.. Target has spawn protection.", 1)
                             MainEvent:FireServer("Reload", tool)
                         end
@@ -7204,7 +7904,7 @@ RunService.Heartbeat:Connect(function(dt)
                             end
                         elseif isDead == true then
                             -- Move to safe position when target is dead
-                            localPlayer.Character.HumanoidRootPart.CFrame += Vector3.new(math.random(-11223344556677889900,11223344556677889900), math.random(0,11223344556677889900), math.random(-11223344556677889900,11223344556677889900))
+                            localPlayer.Character.HumanoidRootPart.CFrame += Vector3.new(math.random(-1000000,1000000), math.random(0,1000000), math.random(-1000000,1000000))
                             Library:Notify("Matcha.cc - Waiting.. Target is currently dead.", 1)
                             MainEvent:FireServer("Reload", tool)
                         end
@@ -7218,7 +7918,7 @@ RunService.Heartbeat:Connect(function(dt)
 
                     end
                 else
-                    localPlayer.Character.HumanoidRootPart.CFrame += Vector3.new(math.random(-11223344556677889900,11223344556677889900), math.random(0,11223344556677889900), math.random(-11223344556677889900,11223344556677889900))
+                    localPlayer.Character.HumanoidRootPart.CFrame += Vector3.new(math.random(-1000000,1000000), math.random(0,1000000), math.random(-1000000,1000000))
                     Library:Notify("Matcha.cc - Waiting.. Equip your gun while using 'Auto Kill Target'.", 1)
 
                     if matchacc.AutoKill.AutoKillDesync then
@@ -7233,7 +7933,7 @@ RunService.Heartbeat:Connect(function(dt)
             -- If no target is found
             local humanoidRootPart = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
             if humanoidRootPart then
-                humanoidRootPart.CFrame += Vector3.new(math.random(-11223344556677889900,11223344556677889900), math.random(0,11223344556677889900), math.random(-11223344556677889900,11223344556677889900))
+                humanoidRootPart.CFrame += Vector3.new(math.random(-1000000,1000000), math.random(0,1000000), math.random(-1000000,1000000))
             end
             Library:Notify("Matcha.cc - Target not found(Hide void).", 3)
             if matchacc.AutoKill.AutoKillDesync then
@@ -7245,6 +7945,62 @@ RunService.Heartbeat:Connect(function(dt)
         end
     end
 end)
+if isDaHood then 
+
+
+-- UI Setup (sửa để phù hợp với lib của bạn, giả sử sử dụng Tabs.Misc:AddLeftGroupbox('AutoBuy'))
+local AutoBuyGroup = Tabs.Misc:AddLeftGroupbox('AutoBuy')
+
+AutoBuyGroup:AddDropdown('SelectedGun', {
+    Values = {'[Rifle]', '[LMG]', '[AK47]', '[AUG]', '[AR]', '[Double-Barrel SG]', '[Drum-Shotgun]', '[DrumGun]', '[Glock]', '[P90]', '[RPG]', '[Revolver]', '[Silencer]', '[SilencerAR]', '[Shotgun]', '[SMG]', '[TacticalShotgun]', '[Taser]'},
+    Default = '[Rifle]',
+    Multi = false,
+    Text = 'Select Gun',
+    Callback = function(Value)
+        SelectedGun = Value
+    end
+})
+
+AutoBuyGroup:AddButton('Buy Selected Gun', function()
+    BuyingSingle = true
+end)
+
+AutoBuyGroup:AddToggle('BuyAmmo', {
+    Text = 'Buy Ammo',
+    Default = false,
+    Callback = function(Value)
+        BuyingAmmo = Value
+    end
+})
+
+AutoBuyGroup:AddToggle('AutoBuyGunAmmo', {
+    Text = 'Autobuy Gun + Ammo',
+    Default = false,
+    Callback = function(Value)
+        headshots.AutoLoadout.Enabled = Value
+    end
+})
+
+AutoBuyGroup:AddDropdown('AutoLoadoutGun', {
+    Values = {'[Rifle]', '[LMG]', '[AK47]', '[AUG]', '[AR]', '[Double-Barrel SG]', '[Drum-Shotgun]', '[DrumGun]', '[Glock]', '[P90]', '[RPG]', '[Revolver]', '[Silencer]', '[SilencerAR]', '[Shotgun]', '[SMG]', '[TacticalShotgun]', '[Taser]'},
+    Default = '[Rifle]',
+    Multi = false,
+    Text = 'Auto Gun',
+    Callback = function(Value)
+        headshots.AutoLoadout.Gun = Value
+    end
+})
+
+AutoBuyGroup:AddToggle('AutoArmor', {
+    Text = 'Auto Armor',
+    Default = false,
+    Callback = function(Value)
+        headshots.AutoArmor.Enabled = Value
+    end
+})
+end
+end)()
+coroutine.wrap(function()
 local RS = cloneref(game:GetService("RunService"))
 local highlights = {}
 
@@ -7286,7 +8042,6 @@ RS.RenderStepped:Connect(function()
         end
     end
 end)
-
 local CharacterModsGroup = Tabs.Character:AddRightGroupbox('Character Mods')
 
 -- Anti Slowdown (No Slow / No Jump Cooldown / No Reload Slow)
@@ -7392,7 +8147,7 @@ AnimationGroup:AddDropdown('DanceSelect', {
         table.sort(t)
         return t
     end)(),
-    Default = 1,
+    Default = 0,
     Multi = false,
     Text = 'Dance Animation',
     Searchable = true,
@@ -7421,7 +8176,7 @@ AnimationGroup:AddToggle('DanceToggle', {
     Mode = 'Toggle',
     Text = 'Dance Keybind'
 })
-coroutine.wrap(function()
+
 local KeepOnDeath = false
 
 -- Animation hiện tại đang dùng
@@ -7571,7 +8326,6 @@ AnimationGroup:AddToggle('KeepAnimOnDeath', {
     Tooltip = 'Giữ animation sau khi respawn',
     Callback = function(v) KeepOnDeath = v end
 })
-end)()
 getgenv().Matcha.Character = getgenv().Matcha.Character or {}
 getgenv().Matcha.Character.Noclip = false
 
@@ -7598,7 +8352,6 @@ CharacterModsGroup:AddToggle('Noclip', {
     Default = false,
     Callback = toggleNoclip
 }):AddKeyPicker('NoclipKey', { Default = 'N', SyncToggleState = true, Mode = 'Toggle', Text = 'Noclip' })
-
 do
     local CollectionService = game:GetService("CollectionService")
     local seats = {}
@@ -7623,6 +8376,307 @@ do
         end
     })
 end
+local Storage = { Connections = {} }
+
+local function NewConnection(signal, callback)
+    local conn = signal:Connect(callback)
+    table.insert(Storage.Connections, conn)
+    return conn
+end
+
+-- Add to matchacc
+matchacc.Desync = {
+    Enabled = false,
+    Mode = "Void",
+    RandomAmount = 20,
+    Visualize = false,
+    Line = false,
+    Status = false,
+    Dot = false
+}
+
+-- Desync Clone (similar to BodyClone but for Desync)
+local BodyCloneDesync = game:GetObjects("rbxassetid://8246626421")[1]
+BodyCloneDesync.Parent = workspace
+BodyCloneDesync.Humanoid:Destroy()
+BodyCloneDesync.Head.Face:Destroy()
+for _, v in pairs(BodyCloneDesync:GetDescendants()) do
+    if v:IsA("BasePart") or v:IsA("MeshPart") then
+        v.CanCollide = false
+        v.Transparency = 0 -- Show all parts for visualize
+    end
+end
+BodyCloneDesync.HumanoidRootPart.Transparency = 0.5
+BodyCloneDesync.HumanoidRootPart.Velocity = Vector3.zero
+BodyCloneDesync.HumanoidRootPart.CFrame = CFrame.new(9999, 9999, 9999)
+
+-- Highlight for visualize
+local BodyCloneDesyncHighlight = Instance.new("Highlight")
+BodyCloneDesyncHighlight.Enabled = false
+BodyCloneDesyncHighlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+BodyCloneDesyncHighlight.FillColor = Color3.fromRGB(0, 255, 0)
+BodyCloneDesyncHighlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+BodyCloneDesyncHighlight.FillTransparency = 0.3
+BodyCloneDesyncHighlight.OutlineTransparency = 0
+BodyCloneDesyncHighlight.Adornee = BodyCloneDesync
+BodyCloneDesyncHighlight.Parent = BodyCloneDesync
+
+-- Glow
+local GlowLight = Instance.new("PointLight")
+GlowLight.Color = Color3.fromRGB(0, 255, 100)
+GlowLight.Brightness = 4
+GlowLight.Range = 2
+GlowLight.Parent = BodyCloneDesync.HumanoidRootPart
+
+-- Desync Line
+local DesyncLine = Drawing.new("Line")
+DesyncLine.Thickness = 1
+DesyncLine.Color = Color3.fromRGB(0, 255, 0)
+DesyncLine.Visible = false
+DesyncLine.Transparency = 1
+
+-- Desync Dot
+local DesyncDot = Drawing.new("Circle")
+DesyncDot.Radius = 6
+DesyncDot.Thickness = 1.5
+DesyncDot.NumSides = 16
+DesyncDot.Color = Color3.fromRGB(0, 255, 100)
+DesyncDot.Filled = true
+DesyncDot.Transparency = 1
+DesyncDot.Visible = false
+
+-- Desync Status Text
+local DesyncStatus = Drawing.new("Text")
+DesyncStatus.Text = "Desync: FALSE"
+DesyncStatus.Size = 16
+DesyncStatus.Font = 2
+DesyncStatus.Color = Color3.fromRGB(255, 0, 0)
+DesyncStatus.Outline = true
+DesyncStatus.OutlineColor = Color3.fromRGB(0, 0, 0)
+DesyncStatus.Center = false
+DesyncStatus.Visible = false
+DesyncStatus.Position = Vector2.new(100, 100)
+
+-- Reset Camera function
+local function resetCamera()
+    if LocalPlayer.Character then
+        Camera.CameraSubject = LocalPlayer.Character:FindFirstChild("Humanoid")
+    end
+end
+local desync_setback = Instance.new("Part")
+desync_setback.Name = "DesyncSetback"
+desync_setback.Size = Vector3.new(2, 2, 1)
+desync_setback.CanCollide = false
+desync_setback.Anchored = true
+desync_setback.Transparency = 1
+desync_setback.Parent = workspace
+-- Desync Logic in Heartbeat
+NewConnection(RunService.Heartbeat, function()
+    if not matchacc.Desync.Enabled or not LocalPlayer.Character or not BodyCloneDesync then
+        BodyCloneDesync:SetPrimaryPartCFrame(CFrame.new(9999, 9999, 9999))
+        BodyCloneDesyncHighlight.Enabled = false
+        DesyncLine.Visible = false
+        DesyncDot.Visible = false
+        DesyncStatus.Visible = false
+        return
+    end
+
+    local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local lowerTorso = LocalPlayer.Character:FindFirstChild("LowerTorso") -- For Da Hood desync
+    if not hrp or not lowerTorso then
+        DesyncDot.Visible = false
+        return
+    end
+
+    local oldCFrame = hrp.CFrame
+    local desyncCFrame = oldCFrame
+
+    -- Desync Modes
+    if matchacc.Desync.Mode == "Destroy Cheaters" then
+        desyncCFrame = CFrame.new(9e9, 1, 1)
+    elseif matchacc.Desync.Mode == "Underground" then
+        desyncCFrame = CFrame.new(hrp.Position - Vector3.new(0, 12, 0))
+    elseif matchacc.Desync.Mode == "Void Spam" then
+        desyncCFrame = math.random(1,2) == 1 and oldCFrame or CFrame.new(math.random(10000,50000), math.random(10000,50000), math.random(10000,50000))
+    elseif matchacc.Desync.Mode == "Void" then
+        desyncCFrame = oldCFrame + Vector3.new(math.random(-444444,444444), math.random(-444444,444444), math.random(-44444,44444))
+    elseif matchacc.Desync.Mode == "Random" then
+        local amount = matchacc.Desync.RandomAmount
+        local offset = Vector3.new(
+            math.random(-amount, amount),
+            math.random(-amount/2, amount/2),
+            math.random(-amount, amount)
+        )
+        desyncCFrame = CFrame.new(oldCFrame.Position + offset)
+    end
+
+    -- Apply Desync
+    hrp.CFrame = desyncCFrame
+    Camera.CameraSubject = desync_setback
+    RunService.RenderStepped:Wait()
+    desync_setback.CFrame = oldCFrame * CFrame.new(0, hrp.Size.Y/2 + 0.5, 0) -- Adjust lower body
+    hrp.CFrame = oldCFrame
+
+    -- Visualize
+    if matchacc.Desync.Visualize then
+        BodyCloneDesync:SetPrimaryPartCFrame(desyncCFrame)
+        BodyCloneDesyncHighlight.Enabled = true
+    else
+        BodyCloneDesyncHighlight.Enabled = false
+        BodyCloneDesync:SetPrimaryPartCFrame(CFrame.new(9999, 9999, 9999))
+    end
+
+    -- Line
+    if matchacc.Desync.Line and matchacc.Desync.Visualize then
+        local rootPos = hrp.Position
+        local clonePos = BodyCloneDesync.HumanoidRootPart.Position
+        local screen1, onScreen1 = Camera:WorldToViewportPoint(rootPos)
+        local screen2, onScreen2 = Camera:WorldToViewportPoint(clonePos)
+        if onScreen1 and onScreen2 then
+            DesyncLine.From = Vector2.new(screen1.X, screen1.Y)
+            DesyncLine.To = Vector2.new(screen2.X, screen2.Y)
+            DesyncLine.Color = BodyCloneDesyncHighlight.FillColor
+            DesyncLine.Visible = true
+        else
+            DesyncLine.Visible = false
+        end
+    else
+        DesyncLine.Visible = false
+    end
+
+    -- Dot
+    if matchacc.Desync.Dot then
+        local screenPos, onScreen = Camera:WorldToViewportPoint(BodyCloneDesync.HumanoidRootPart.Position)
+        if onScreen then
+            DesyncDot.Position = Vector2.new(screenPos.X, screenPos.Y)
+            DesyncDot.Visible = true
+        else
+            DesyncDot.Visible = false
+        end
+    else
+        DesyncDot.Visible = false
+    end
+
+    -- Status Text
+    if matchacc.Desync.Status then
+        DesyncStatus.Text = "Desync: " .. (matchacc.Desync.Enabled and "TRUE" or "FALSE")
+        DesyncStatus.Color = matchacc.Desync.Enabled and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+        DesyncStatus.Visible = true
+    else
+        DesyncStatus.Visible = false
+    end
+end)
+
+-- Dragging for Status Text
+local dragging = false
+UserInputService.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 and matchacc.Desync.Status then
+        local mousePos = UserInputService:GetMouseLocation()
+        local textPos = DesyncStatus.Position
+        local textSize = DesyncStatus.TextBounds
+        if mousePos.X >= textPos.X and mousePos.X <= textPos.X + textSize.X and
+           mousePos.Y >= textPos.Y and mousePos.Y <= textPos.Y + textSize.Y then
+            dragging = true
+        end
+    end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        DesyncStatus.Position = UserInputService:GetMouseLocation()
+    end
+end)
+
+-- UI for Desync (add to Tabs.Anti)
+local DesyncGroup = Tabs.Anti:AddLeftGroupbox('Desync')
+
+DesyncGroup:AddToggle('DesyncEnabled', {
+    Text = 'Enabled',
+    Default = false,
+    Callback = function(Value)
+        matchacc.Desync.Enabled = Value
+        if not Value then
+            resetCamera()
+        end
+    end
+}):AddKeyPicker('DesyncKeybind', {
+    Default = 'None',
+    NoUI = true,
+    Text = 'Desync Key',
+    Callback = function(Key)
+        -- Toggle on key press (you can adjust)
+        matchacc.Desync.Enabled = not matchacc.Desync.Enabled
+        if not matchacc.Desync.Enabled then
+            resetCamera()
+        end
+    end
+})
+
+DesyncGroup:AddDropdown('DesyncMode', {
+    Values = {'Destroy Cheaters', 'Underground', 'Void Spam', 'Void', 'Random'},
+    Default = 'Void',
+    Multi = false,
+    Text = 'Mode',
+    Callback = function(Value)
+        matchacc.Desync.Mode = Value
+    end
+})
+
+DesyncGroup:AddSlider('DesyncRandomAmount', {
+    Text = 'Random Amount',
+    Default = 20,
+    Min = 1,
+    Max = 1000,
+    Suffix = '',
+    Compact = false,
+    Callback = function(Value)
+        matchacc.Desync.RandomAmount = Value
+    end
+})
+
+DesyncGroup:AddToggle('DesyncVisualize', {
+    Text = 'Visualize Desync',
+    Default = false,
+    Callback = function(Value)
+        matchacc.Desync.Visualize = Value
+    end
+}):AddColorPicker('DesyncVizColor', {
+    Default = Color3.fromRGB(0, 255, 0),
+    Title = 'Color',
+    Callback = function(Value)
+        BodyCloneDesyncHighlight.FillColor = Value
+        GlowLight.Color = Value
+    end
+})
+
+DesyncGroup:AddToggle('DesyncLine', {
+    Text = 'Line Desync',
+    Default = false,
+    Callback = function(Value)
+        matchacc.Desync.Line = Value
+    end
+})
+
+DesyncGroup:AddToggle('DesyncStatus', {
+    Text = 'Desync Status',
+    Default = false,
+    Callback = function(Value)
+        matchacc.Desync.Status = Value
+    end
+})
+
+DesyncGroup:AddToggle('DesyncDot', {
+    Text = 'Dot Desync',
+    Default = false,
+    Callback = function(Value)
+        matchacc.Desync.Dot = Value
+    end
+})
+end)()
 coroutine.wrap(function()
 local LeftGroupBox = Tabs.Misc:AddLeftGroupbox('Auto Chatters')
 -- List of Rizz lines
@@ -8281,6 +9335,7 @@ LeftGroupBox:AddToggle('MyToggle', {
     Callback = togglePromoChat
 }):AddKeyPicker('Promochat', { Default = 'none', SyncToggleState = true, Mode = 'Toggle', Text = 'promochat' })
 end)()
+coroutine.wrap(function()
 local TrollingBox = Tabs.Misc:AddLeftGroupbox('Trolling')
 
 getgenv().jerkOffEnabled = false
@@ -8451,6 +9506,7 @@ AnimPackBox:AddButton({
         loadstring(game:HttpGet("https://raw.githubusercontent.com/quiwti08/beubebong/refs/heads/main/animationspacks"))()
     end
 })
+end)()
 coroutine.wrap(function()
 local MiscBox = Tabs.Misc:AddRightGroupbox('Misc')
 
@@ -9991,60 +11047,7 @@ ESPGroup:AddToggle('ESPDrawingBoxesCornerEnabled', {
         refresh_esp_visuals()
     end
 })]]
-if isDaHood then 
 
-
--- UI Setup (sửa để phù hợp với lib của bạn, giả sử sử dụng Tabs.Misc:AddLeftGroupbox('AutoBuy'))
-local AutoBuyGroup = Tabs.Misc:AddLeftGroupbox('AutoBuy')
-
-AutoBuyGroup:AddDropdown('SelectedGun', {
-    Values = {'[Rifle]', '[LMG]', '[AK47]', '[AUG]', '[AR]', '[Double-Barrel SG]', '[Drum-Shotgun]', '[DrumGun]', '[Glock]', '[P90]', '[RPG]', '[Revolver]', '[Silencer]', '[SilencerAR]', '[Shotgun]', '[SMG]', '[TacticalShotgun]', '[Taser]'},
-    Default = '[Rifle]',
-    Multi = false,
-    Text = 'Select Gun',
-    Callback = function(Value)
-        SelectedGun = Value
-    end
-})
-
-AutoBuyGroup:AddButton('Buy Selected Gun', function()
-    BuyingSingle = true
-end)
-
-AutoBuyGroup:AddToggle('BuyAmmo', {
-    Text = 'Buy Ammo',
-    Default = false,
-    Callback = function(Value)
-        BuyingAmmo = Value
-    end
-})
-
-AutoBuyGroup:AddToggle('AutoBuyGunAmmo', {
-    Text = 'Autobuy Gun + Ammo',
-    Default = false,
-    Callback = function(Value)
-        headshots.AutoLoadout.Enabled = Value
-    end
-})
-
-AutoBuyGroup:AddDropdown('AutoLoadoutGun', {
-    Values = {'[Rifle]', '[LMG]', '[AK47]', '[AUG]', '[AR]', '[Double-Barrel SG]', '[Drum-Shotgun]', '[DrumGun]', '[Glock]', '[P90]', '[RPG]', '[Revolver]', '[Silencer]', '[SilencerAR]', '[Shotgun]', '[SMG]', '[TacticalShotgun]', '[Taser]'},
-    Default = '[Rifle]',
-    Multi = false,
-    Text = 'Auto Gun',
-    Callback = function(Value)
-        headshots.AutoLoadout.Gun = Value
-    end
-})
-
-AutoBuyGroup:AddToggle('AutoArmor', {
-    Text = 'Auto Armor',
-    Default = false,
-    Callback = function(Value)
-        headshots.AutoArmor.Enabled = Value
-    end
-})
-end
 coroutine.wrap(function()
 local lighting = game:GetService("Lighting")
 local LightingService = game:GetService("Lighting")
@@ -10889,6 +11892,9 @@ Library:OnUnload(function()
     --WatermarkConnection:Disconnect()
     print('Unloaded!')
     Library.Unloaded = true
+    for _, conn in ipairs(Storage.Connections) do
+        conn:Disconnect()
+    end
 end)
 end)()
 game.Players.LocalPlayer.Character.Humanoid.Health = 0
