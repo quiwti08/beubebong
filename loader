@@ -3186,135 +3186,28 @@ ChecksTab:AddSlider('FillTransparencySlider', {
         FillCircle.Transparency = Value
     end
 })
-pcall(function()
-    if InnerCircle then InnerCircle.Visible = false end
-    if OuterCircle then OuterCircle.Visible = false end
-    if FillCircle then FillCircle.Visible = false end
-end)
-
--- Tạo GUI (nếu đã tồn tại thì reuse)
-local CoreGui = game:GetService("CoreGui")
-local existing = CoreGui:FindFirstChild("MatchaFOVGui")
-local FOVGui = existing or Instance.new("ScreenGui")
-if not existing then
-    FOVGui.Name = "MatchaFOVGui"
-    FOVGui.ResetOnSpawn = false
-    FOVGui.Parent = CoreGui
-end
-
--- Frame chính (vòng tròn)
-local FOVFrame = FOVGui:FindFirstChild("FOVFrame") or Instance.new("Frame")
-FOVFrame.Name = "FOVFrame"
-FOVFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-FOVFrame.BackgroundTransparency = 1 -- we'll use gradient to show fill
-FOVFrame.BorderSizePixel = 0
-FOVFrame.Size = UDim2.new(0, FOVCircleSize * 2, 0, FOVCircleSize * 2)
-FOVFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-FOVFrame.Parent = FOVGui
-
--- UICorner để làm tròn (hình tròn hoàn chỉnh)
-local corner = FOVFrame:FindFirstChildOfClass("UICorner") or Instance.new("UICorner")
-corner.Parent = FOVFrame
-corner.CornerRadius = UDim.new(1, 0)
-
--- UIStroke (viền)
-local stroke = FOVFrame:FindFirstChildOfClass("UIStroke") or Instance.new("UIStroke")
-stroke.Parent = FOVFrame
-stroke.Thickness = 2
-stroke.Transparency = 0
-stroke.LineJoinMode = Enum.LineJoinMode.Miter
-
--- UIGradient (fill)
-local uiGradient = FOVFrame:FindFirstChildOfClass("UIGradient") or Instance.new("UIGradient")
-uiGradient.Parent = FOVFrame
-uiGradient.Rotation = 0
-uiGradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, GradientColor1 or Color3.fromRGB(255,255,255)),
-    ColorSequenceKeypoint.new(1, GradientColor2 or Color3.fromRGB(0,0,0))
-}
-
--- Background "fill" rectangle to simulate transparency fill
--- We add an ImageLabel as overlay to control transparency of fill (Frame background is transparent)
-local fillOverlay = FOVFrame:FindFirstChild("FillOverlay") or Instance.new("Frame")
-fillOverlay.Name = "FillOverlay"
-fillOverlay.Size = UDim2.new(1,0,1,0)
-fillOverlay.Position = UDim2.new(0,0,0,0)
-fillOverlay.BackgroundTransparency = 1 -- gradient handles color; transparency controlled by this frame's BackgroundTransparency if needed
-fillOverlay.Parent = FOVFrame
-
--- Helper lerp color (nếu bạn cần chuyển màu dạng LERP)
-local function LerpColor(a, b, t)
-    t = math.clamp(t or 0, 0, 1)
-    return Color3.new(
-        a.R + (b.R - a.R) * t,
-        a.G + (b.G - a.G) * t,
-        a.B + (b.B - a.B) * t
-    )
-end
-
--- Hàm cập nhật UIStroke màu theo gradient keypoint đầu (giống bạn muốn)
-local function UpdateStrokeColor()
-    local kp = uiGradient.Color.Keypoints[1] and uiGradient.Color.Keypoints[1].Value
-    if kp then
-        stroke.Color = Color3.new(kp.R, kp.G, kp.B)
-    end
-end
-
--- Hàm cập nhật kích thước khi FOVCircleSize thay đổi
-local function UpdateFOVSize()
-    local r = math.max(2, tonumber(FOVCircleSize) or 125)
-    FOVFrame.Size = UDim2.new(0, r * 2, 0, r * 2)
-    FOVFrame.Position = UDim2.new(0.5, -r, 0.5, -r)
-end
-UpdateFOVSize()
-UpdateStrokeColor()
-
--- Cập nhật vị trí theo chuột (PC) hoặc center (mobile)
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local Camera = workspace.CurrentCamera
-local function getFOVPosition()
-    if UserInputService.TouchEnabled and not UserInputService.MouseEnabled then
-        return Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-    else
-        return UserInputService:GetMouseLocation()
-    end
-end
-
--- Tốc độ quay gradient (thay đổi giá trị này để nhanh/chậm)
-local RotateSpeed = RotateThisDick or 4 -- nếu bạn đã có RotateThisDick ở script gốc thì reuse
-
--- RenderStepped cập nhật mỗi frame
 RunService.RenderStepped:Connect(function()
-    -- Hiển thị/ẩn GUI dựa trên flag
-    FOVGui.Enabled = true
-    FOVFrame.Visible = (FOVCircleEnabled == true)
-
-    if not FOVCircleEnabled then return end
-
-    -- Cập nhật vị trí
-    local pos = getFOVPosition()
-    -- UserInputService:GetMouseLocation() trả tọa độ screen (x,y)
-    -- Chuyển sang UDim2: position offset đã set anchor 0.5,0.5 nên dùng offset -nửa kích thước
-    local x = pos.X
-    local y = pos.Y
-    -- đặt trực tiếp offset (udim) để chính xác theo chuột
-    local w = FOVFrame.Size.X.Offset
-    local h = FOVFrame.Size.Y.Offset
-    FOVFrame.Position = UDim2.new(0, x - w/2, 0, y - h/2)
-
-    -- Nếu bật gradient quay -> xoay UIGradient
-    if GradientFillEnabled then
-        uiGradient.Rotation = (uiGradient.Rotation + RotateSpeed) % 360
-        -- (nếu bạn muốn gradient đổi màu bằng sin lerp thay vì xoay, thay logic ở đây)
-        UpdateStrokeColor()
-    else
-        -- nếu ko bật gradient fill, set gradient thành 2 màu giống nhau (như fill tĩnh)
-        uiGradient.Color = ColorSequence.new{
-            ColorSequenceKeypoint.new(0, GradientColor1 or Color3.fromRGB(255,255,255)),
-            ColorSequenceKeypoint.new(1, GradientColor1 or Color3.fromRGB(255,255,255))
-        }
-        UpdateStrokeColor()
+    if FOVCircleEnabled then
+        local pos
+        if UserInputService.TouchEnabled then
+            -- Mobile: tâm màn hình
+            pos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+        else
+            -- PC: vị trí chuột
+            pos = UserInputService:GetMouseLocation()
+        end
+        InnerCircle.Position = pos
+        OuterCircle.Position = pos
+        FillCircle.Position = pos
+        
+        if GradientFillEnabled then
+            -- Simulate gradient xoay bằng lerp color theo sin wave (xoay màu giữa 2 color)
+            local t = math.sin(tick() * 2) * 0.5 + 0.5 
+            local r = GradientColor1.R + (GradientColor2.R - GradientColor1.R) * t
+            local g = GradientColor1.G + (GradientColor2.G - GradientColor1.G) * t
+            local b = GradientColor1.B + (GradientColor2.B - GradientColor1.B) * t
+            FillCircle.Color = Color3.new(r, g, b)
+        end
     end
 end)
 OptionsTab:AddInput('PredictionInput', {
