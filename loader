@@ -300,6 +300,7 @@ local matchacc = {
 	    AirPartEnabled = false,    -- toggle airpart
 	    AirPart = "Head",          -- airpart dropdown
 	    Resolver = false,
+        TargetStats = false,
     },
     HitEffects = {
         HitSounds = false,
@@ -2305,6 +2306,118 @@ TargetAimTab:AddToggle('AutoFire', {
         matchacc.TargetAim.AutoFire = Value
     end
 })
+TargetAimTab:AddToggle('TargetStatsEnabled', {
+    Text = 'Target Stats',
+    Default = false,
+    Callback = function(Value)
+        matchacc.TargetAim.TargetStats = Value
+    end
+})
+
+local matchacc_TargetStats = Instance.new("ScreenGui")
+local Background = Instance.new("Frame")
+local Picture = Instance.new("ImageLabel")
+local Top = Instance.new("Frame")
+local UIGradient = Instance.new("UIGradient")
+local UIGradient_2 = Instance.new("UIGradient")
+local HealthBarBackground = Instance.new("Frame")
+local UIGradient_3 = Instance.new("UIGradient")
+local HealthBar = Instance.new("Frame")
+local UIGradient_4 = Instance.new("UIGradient")
+local NameOfTarget = Instance.new("TextLabel")
+
+matchacc_TargetStats.Name = "matchacc_TargetStats"
+matchacc_TargetStats.Parent = game.CoreGui
+matchacc_TargetStats.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+Background.Name = "Background"
+Background.Parent = matchacc_TargetStats
+Background.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Background.BorderSizePixel = 0
+Background.Position = UDim2.new(0.388957828, 0, 0.700122297, 0)
+Background.Size = UDim2.new(0, 358, 0, 71)
+Background.Visible = false
+Picture.Name = "Picture"
+Picture.Parent = Background
+Picture.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Picture.BorderSizePixel = 0
+Picture.Position = UDim2.new(0.0279329624, 0, 0.0704225376, 0)
+Picture.Size = UDim2.new(0, 59, 0, 59)
+Picture.Transparency = 1
+Picture.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"
+
+Top.Name = "Top"
+Top.Parent = Background
+Top.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Top.BorderSizePixel = 0
+Top.Position = UDim2.new(0, 0, -0.101449274, 0)
+Top.Size = UDim2.new(0, 358, 0, 7)
+
+UIGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0.00, Color3.fromRGB(184, 159, 227)), ColorSequenceKeypoint.new(1.00, Color3.fromRGB(102, 88, 156))}
+UIGradient.Rotation = 90
+UIGradient.Parent = Top
+
+UIGradient_2.Color = ColorSequence.new{ColorSequenceKeypoint.new(0.00, Color3.fromRGB(52, 52, 52)), ColorSequenceKeypoint.new(1.00, Color3.fromRGB(0, 0, 0))}
+UIGradient_2.Rotation = 90
+UIGradient_2.Parent = Background
+
+HealthBarBackground.Name = "HealthBarBackground"
+HealthBarBackground.Parent = Background
+HealthBarBackground.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+HealthBarBackground.BorderSizePixel = 0
+HealthBarBackground.Position = UDim2.new(0.215083793, 0, 0.348234326, 0)
+HealthBarBackground.Size = UDim2.new(0, 270, 0, 19)
+HealthBarBackground.Transparency = 1
+
+UIGradient_3.Color = ColorSequence.new{ColorSequenceKeypoint.new(0.00, Color3.fromRGB(58, 58, 58)), ColorSequenceKeypoint.new(1.00, Color3.fromRGB(30, 30, 30))}
+UIGradient_3.Rotation = 90
+UIGradient_3.Parent = HealthBarBackground
+
+HealthBar.Name = "HealthBar"
+HealthBar.Parent = HealthBarBackground
+HealthBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+HealthBar.BorderSizePixel = 0
+HealthBar.Position = UDim2.new(-0.00336122862, 0, 0.164894029, 0)
+HealthBar.Size = UDim2.new(0, 130, 0, 19)
+
+UIGradient_4.Color = ColorSequence.new{ColorSequenceKeypoint.new(0.00, Color3.fromRGB(184, 159, 227)), ColorSequenceKeypoint.new(1.00, Color3.fromRGB(102, 88, 156))}
+UIGradient_4.Rotation = 90
+UIGradient_4.Parent = HealthBar
+
+NameOfTarget.Name = "NameOfTarget"
+NameOfTarget.Parent = Background
+NameOfTarget.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+NameOfTarget.BackgroundTransparency = 1.000
+NameOfTarget.Position = UDim2.new(0.220670387, 0, 0.0704225376, 0)
+NameOfTarget.Size = UDim2.new(0, 268, 0, 19)
+NameOfTarget.Font = Enum.Font.Code
+NameOfTarget.TextColor3 = Color3.fromRGB(255, 255, 255)
+NameOfTarget.TextScaled = true
+NameOfTarget.TextSize = 14.000
+NameOfTarget.TextStrokeTransparency = 0.000
+NameOfTarget.TextWrapped = true
+-- Update logic
+local IsAlive = function(GetPlayer)
+    return GetPlayer and GetPlayer.Character and GetPlayer.Character:FindFirstChild("HumanoidRootPart") ~= nil and GetPlayer.Character:FindFirstChild("Humanoid") ~= nil and GetPlayer.Character:FindFirstChild("Head") ~= nil and true or false
+end
+RunService.Heartbeat:Connect(function()
+    if matchacc.TargetAim.TargetStats and matchacc.TargetAim.Enabled then
+        local targetName = matchacc.TargetAim.Target
+        
+        local target = players:FindFirstChild(targetName)
+        if not target or not target.Character then
+            Background.Visible = false
+            return
+        end
+        if target and IsAlive(target) then
+            Background.Visible = true
+            NameOfTarget.Text = tostring(target.Character.Humanoid.DisplayName).." ["..tostring(target.Name).."]"
+            Picture.Image = "rbxthumb://type=AvatarHeadShot&id=" ..target.UserId.. "&w=420&h=420"
+            HealthBar:TweenSize(UDim2.new(target.Character.Humanoid.Health / target.Character.Humanoid.MaxHealth, 0, 1, 0), "In", "Linear", 0.25)
+        end
+    else
+        Background.Visible = false
+    end
+end)
 
 TargetAimTab:AddToggle('Highlight', {
     Text = 'Highlight',
@@ -6890,6 +7003,7 @@ RunService.Heartbeat:Connect(function(dt)
         end
     end
 end) 
+
 local Mouse = LocalPlayer:GetMouse()
 local Stats = game:GetService("Stats")
 
@@ -9740,6 +9854,30 @@ MiscBox:AddToggle('ChatSpy', {
         if chatWindow then chatWindow.Enabled = v end
     end
 })
+MiscBox:AddToggle('NoRecoil', {
+    Text = 'No Recoil',
+    Default = false,
+    Callback = function(bool)
+        local camera = workspace.CurrentCamera
+        local localplayer = game.Players.LocalPlayer
+        if bool then
+            local oldcamCF = camera.CFrame
+            old__camera = camera
+            camera.Parent = nil
+            new__camera = Instance.new("Camera", workspace)
+            -- applyProperty function needs definition, assuming it's a custom function to set properties
+            -- If not, use direct assignment
+            new__camera.CameraSubject = localplayer.Character and localplayer.Character.Humanoid
+            new__camera.CFrame = oldcamCF
+            new__camera.CameraType = Enum.CameraType.Custom
+        else
+            if new__camera then
+                new__camera:Destroy()
+            end
+            old__camera.Parent = workspace
+        end
+    end
+})
 local maxzoom = game.Players.LocalPlayer.CameraMaxZoomDistance
 MiscBox:AddToggle('InfZoom', {
     Text = 'Infinite Zoom',
@@ -11068,6 +11206,15 @@ local originalGeographicLatitude = LightingService.GeographicLatitude
 local nebulaThemeColor = Color3.fromRGB(173, 216, 230)
 local Visuals = {}
 local WorldGroup = Tabs.Visual:AddRightGroupbox('World')
+WorldGroup:AddButton({
+    Text = "Christmas",
+    Func = function()
+        local snowProps = game:GetService("ReplicatedStorage"):FindFirstChild("Christmas_2024"):FindFirstChild("SnowProps")
+        if snowProps then
+            snowProps:Clone().Parent = workspace
+        end
+    end
+})
 WorldGroup:AddToggle('CustomAmbient', {
     Text = 'Custom Ambient',
     Default = false,
@@ -11673,7 +11820,7 @@ WorldGroup:AddDropdown('SkyboxSelected', {
     end
 })
 end)()
--- UI Settings Setup
+coroutine.wrap(function()
 local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
 MenuGroup:AddToggle("KeybindMenuOpen", { Default = Library.KeybindFrame.Visible, Text = "Open Keybind Menu", Callback = function(value) Library.KeybindFrame.Visible = value end})
 MenuGroup:AddToggle("ShowCustomCursor", {Text = "Custom Cursor", Default = true, Callback = function(Value) Library.ShowCustomCursor = Value end})
@@ -11752,7 +11899,6 @@ MenuGroup:AddButton({
     Visible = true
 })
 
-coroutine.wrap(function()
 Library:SetWatermarkVisibility(true)
 getgenv().matcha = {}
 getgenv().matcha.WatermarkEnabled = true
