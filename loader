@@ -2255,7 +2255,38 @@ TargetAimTab:AddToggle('TargetAimEnabled', {
         end
     end
 })
+local Sigmaballs = Instance.new("ScreenGui")
+Sigmaballs.Name = "Sigmaballs"
+Sigmaballs.Parent = game.CoreGui
+Sigmaballs.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+Sigmaballs.ResetOnSpawn = false
 
+if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
+    local ImageButton = Instance.new("ImageButton")
+    ImageButton.Name = "ImageButton"
+    ImageButton.Parent = Sigmaballs
+    ImageButton.Active = true
+    ImageButton.Draggable = true
+    ImageButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    ImageButton.BackgroundTransparency = 0.5
+    ImageButton.Size = UDim2.new(0, 90, 0, 90)
+    ImageButton.Image = "http://www.roblox.com/asset/?id=11351620343"
+    ImageButton.Position = UDim2.new(0.5, -25, 0.5, -25)
+    ImageButton.Visible = false  -- Ẩn mặc định
+    local Ui2corner = Instance.new("UICorner")
+    Ui2corner.CornerRadius = UDim.new(0.2, 0)
+    Ui2corner.Parent = ImageButton
+    ImageButton.MouseButton1Click:Connect(function()
+        if matchacc.TargetAim.Enabled then
+            local target = GetClosestCharacter()
+            if target then
+                matchacc.TargetAim.Target = target.Name
+            else
+                matchacc.TargetAim.Target = "None"
+            end
+        end
+    end)
+end
 TargetAimTab:AddToggle('AutoSelect', {
     Text = 'Auto Select',
     Default = false,
