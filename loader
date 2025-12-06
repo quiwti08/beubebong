@@ -8399,7 +8399,10 @@ matchacc.Desync = {
     Visualize = false,
     Line = false,
     Status = false,
-    Dot = false
+    Dot = false,
+    CustomX = 0,
+    CustomY = 0,
+    CustomZ = 0
 }
 
 -- Desync Clone (similar to BodyClone but for Desync)
@@ -8498,24 +8501,27 @@ NewConnection(RunService.Heartbeat, function()
     local oldCFrame = hrp.CFrame
     local desyncCFrame = oldCFrame
 
-    -- Desync Modes
-    if matchacc.Desync.Mode == "Destroy Cheaters" then
-        desyncCFrame = CFrame.new(9e9, 1, 1)
-    elseif matchacc.Desync.Mode == "Underground" then
-        desyncCFrame = CFrame.new(hrp.Position - Vector3.new(0, 12, 0))
-    elseif matchacc.Desync.Mode == "Void Spam" then
-        desyncCFrame = math.random(1,2) == 1 and oldCFrame or CFrame.new(math.random(10000,50000), math.random(10000,50000), math.random(10000,50000))
-    elseif matchacc.Desync.Mode == "Void" then
-        desyncCFrame = oldCFrame + Vector3.new(math.random(-444444,444444), math.random(-444444,444444), math.random(-44444,44444))
-    elseif matchacc.Desync.Mode == "Random" then
-        local amount = matchacc.Desync.RandomAmount
-        local offset = Vector3.new(
-            math.random(-amount, amount),
-            math.random(-amount/2, amount/2),
-            math.random(-amount, amount)
-        )
-        desyncCFrame = CFrame.new(oldCFrame.Position + offset)
-    end
+	if matchacc.Desync.Mode == "Destroy Cheaters" then
+	    desyncCFrame = CFrame.new(9e9, 1, 1)
+	elseif matchacc.Desync.Mode == "Underground" then
+	    desyncCFrame = CFrame.new(hrp.Position - Vector3.new(0, 12, 0))
+	elseif matchacc.Desync.Mode == "Void Spam" then
+	    desyncCFrame = math.random(1,2) == 1 and oldCFrame or CFrame.new(math.random(10000,50000), math.random(10000,50000), math.random(10000,50000))
+	elseif matchacc.Desync.Mode == "Void" then
+	    desyncCFrame = oldCFrame + Vector3.new(math.random(-444444,444444), math.random(-444444,444444), math.random(-44444,44444))
+	elseif matchacc.Desync.Mode == "Random" then
+	    local amount = matchacc.Desync.RandomAmount
+	    local offset = Vector3.new(
+	        math.random(-amount, amount),
+	        math.random(-amount/2, amount/2),
+	        math.random(-amount, amount)
+	    )
+	    desyncCFrame = CFrame.new(oldCFrame.Position + offset)
+	elseif matchacc.Desync.Mode == "Safe Shoot" then
+	    desyncCFrame = CFrame.new(Script.Client.RootPart.Position - Vector3.new(0, 5, 0)) * CFrame.Angles(math.random(0, 360), math.random(0, 360), math.rad(180))
+	elseif matchacc.Desync.Mode == "Custom" then
+	    desyncCFrame = CFrame.new(matchacc.Desync.CustomX, matchacc.Desync.CustomY, matchacc.Desync.CustomZ)
+	end
 
     -- Apply Desync
     hrp.CFrame = desyncCFrame
@@ -8624,15 +8630,46 @@ DesyncGroup:AddToggle('DesyncEnabled', {
 })
 
 DesyncGroup:AddDropdown('DesyncMode', {
-    Values = {'Destroy Cheaters', 'Underground', 'Void Spam', 'Void', 'Random'},
-    Default = 'Void',
+    Values = {"Destroy Cheaters", "Underground", "Void Spam", "Void", "Random", "Safe Shoot", "Custom"},
+    Default = 7,
     Multi = false,
-    Text = 'Mode',
+    Text = 'Desync Mode',
     Callback = function(Value)
         matchacc.Desync.Mode = Value
     end
 })
+DesyncGroup:AddSlider('DesyncCustomX', {
+    Text = 'Custom X',
+    Default = 0,
+    Min = -10000,
+    Max = 10000,
+    Rounding = 0,
+    Callback = function(Value)
+        matchacc.Desync.CustomX = Value
+    end
+})
 
+DesyncGroup:AddSlider('DesyncCustomY', {
+    Text = 'Custom Y',
+    Default = 0,
+    Min = -10000,
+    Max = 10000,
+    Rounding = 0,
+    Callback = function(Value)
+        matchacc.Desync.CustomY = Value
+    end
+})
+
+DesyncGroup:AddSlider('DesyncCustomZ', {
+    Text = 'Custom Z',
+    Default = 0,
+    Min = -10000,
+    Max = 10000,
+    Rounding = 0,
+    Callback = function(Value)
+        matchacc.Desync.CustomZ = Value
+    end
+})
 DesyncGroup:AddSlider('DesyncRandomAmount', {
     Text = 'Random Amount',
     Default = 20,
