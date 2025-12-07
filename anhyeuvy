@@ -8,8 +8,14 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local PREMIUM_PASS_ID = 1618296323
 local BYPASS_PASS_ID = 1618124347
 
-getgenv().ownerUsernames = getgenv().ownerUsernames or loadstring(game:HttpGet("https://raw.githubusercontent.com/quiwti08/beubebong/refs/heads/main/system/ownerlist", true))() or {}
-
+getgenv().ownerUsernames = {
+    ["anhchangm5"] = true,
+    ["Dao_Beo"] = true,
+    ["anhchangm52"] = true,
+    ["anhaycogihontoi"] = true,
+    ["anhchongyeuvo"] = true,
+    ["anhchangm53"] = true,
+}
 local function isOwner(plr) return getgenv().ownerUsernames[plr.Name] ~= nil end
 local function hasPremium(plr) return MarketplaceService:UserOwnsAsset(plr.UserId, PREMIUM_PASS_ID) end
 local function hasBypass(plr) return MarketplaceService:UserOwnsAsset(plr.UserId, BYPASS_PASS_ID) end
