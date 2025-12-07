@@ -7257,7 +7257,7 @@ task.spawn(function()
         task.wait(0.3)
     end
 end)
-
+coroutine.wrap(function()
 -- Velocity Resolver Tracker (cực kỳ chính xác, dùng cho Calculate mode + Resolver)
 local VelocityTracker = {}
 RunService.Heartbeat:Connect(function(dt)
@@ -7276,7 +7276,7 @@ RunService.Heartbeat:Connect(function(dt)
         end
     end
 end)
-coroutine.wrap(function()
+
 if getnamecallmethod and not isMobile then
     local Meta = getrawmetatable(game)
     local backupindex = Meta.__index
