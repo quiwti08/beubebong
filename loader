@@ -275,6 +275,9 @@ end
 if isBypass then
 	Library:Notify("You are BypassPremium Matcha User! " .. plr.DisplayName, 10)
 end
+if not isBypass and isPremium then
+    Library:Notify("You are Freemium Matcha User! " .. plr.DisplayName, 10)
+end
 local Tabs = {
     Main = Window:AddTab('Main', 'target'),
     Visual = Window:AddTab('Visual', 'eye'),
