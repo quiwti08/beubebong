@@ -12459,7 +12459,140 @@ WorldGroup:AddDropdown('SkyboxSelected', {
 })
 end)()
 coroutine.wrap(function()
+local function makeSmoothDraggable(frame, speed)
+    speed = speed or 0.2
+    local dragging, dragInput, dragStart, startPos
+    local function update(input)
+        local delta = input.Position - dragStart
+        local goal = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        TweenService:Create(frame, TweenInfo.new(speed, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {Position = goal}):Play()
+    end
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+            end)
+        end
+    end)
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then update(input) end
+    end)
+end
 local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
+local function MakeTool(ToolKeybind, ToolInstanceName)
+    local ToolInstance = Instance.new("Tool")
+    ToolInstance.RequiresHandle = false
+    ToolInstance.Name = ToolKeybind
+    ToolInstance.Activated:Connect(function()
+        game:GetService("VirtualInputManager"):SendKeyEvent(true, ToolKeybind, false, game)
+    end)
+    ToolInstance.Parent = game.Players.LocalPlayer.Backpack
+
+    local Player = game.Players.LocalPlayer
+    local function OnCharacterAdded(character)
+        ToolInstance.Parent = Player.Backpack
+    end
+    Player.CharacterAdded:Connect(OnCharacterAdded)
+
+    Player.CharacterRemoving:Connect(function()
+        ToolInstance.Parent = Player.Backpack
+    end)
+end
+
+-- Function MakeButton (sửa nhỏ: thêm check tồn tại ScreenGui, làm draggable nếu có function)
+local function MakeButton(ButtonKeybind, ButtInstanceName)
+    local player = game.Players.LocalPlayer
+    local parent = game:GetService("RunService"):IsStudio() and player.PlayerGui or player:WaitForChild("PlayerGui")
+
+    -- Check nếu đã tồn tại thì destroy trước
+    local existingGui = parent:FindFirstChild(ButtInstanceName or "CustomButtonGui")
+    if existingGui then existingGui:Destroy() end
+
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = ButtInstanceName or "CustomButtonGui"
+    screenGui.DisplayOrder = 100
+    screenGui.Parent = parent
+
+    local Button = Instance.new("TextButton")
+    Button.Parent = screenGui
+    Button.Name = ButtonKeybind
+    Button.Size = UDim2.new(0, 60, 0, 60)
+    Button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    Button.AnchorPoint = Vector2.new(0.5, 0.5)
+    Button.Position = UDim2.new(0.5, 0, 0.5, 0)
+    Button.Text = ButtonKeybind
+    Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Button.Font = Enum.Font.GothamSemibold
+    Button.TextSize = 22
+    Button.BorderSizePixel = 0
+    Button.AutoButtonColor = false
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(1, 0)
+    corner.Parent = Button
+
+    makeSmoothDraggable(Button)
+
+    Button.MouseButton1Click:Connect(function()
+        game:GetService("VirtualInputManager"):SendKeyEvent(true, ButtonKeybind, false, game)
+    end)
+end
+
+-- UI phần: Sử dụng AddInput cho Textbox, AddButton cho Button
+MenuGroup:AddInput('ToolKeybind', {
+    Default = '',
+    Numeric = false,
+    Finished = true,
+    Text = 'Tool Keybind',
+    Placeholder = 'Enter Keybind (e.g. Q)',
+    Callback = function(Value)
+        -- Optional: Lưu value nếu cần, nhưng không bắt buộc
+    end
+})
+
+MenuGroup:AddButton({
+    Text = 'Make Tool',
+    Func = function()
+        local key = Options.ToolKeybind.Value  -- Lấy từ Options (flags)
+        if key and key ~= '' then
+            MakeTool(key, key)
+            Library:Notify("Tool created: " .. key, 3)
+        else
+            Library:Notify("Enter a valid keybind first!", 3)
+        end
+    end
+})
+
+SettingsGroup:AddInput('ToolKeybind', {
+    Flag = 'ToolKeybind',  -- Thêm này để bind Options.ToolKeybind
+    Default = '',
+    Numeric = false,
+    Finished = true,
+    Text = 'Tool Keybind',
+    Placeholder = 'Enter Keybind (e.g. Q)',
+    Callback = function(Value)
+        -- Optional: Lưu hoặc check, ví dụ uppercase key
+        if Value then Value = string.upper(Value) end
+    end
+})
+MenuGroup:AddButton({
+    Text = 'Make Button',
+    Func = function()
+        local key = Options.ButtonKeybind.Value
+        if key and key ~= '' then
+            MakeButton(key, key)
+            Library:Notify("Button created: " .. key, 3)
+        else
+            Library:Notify("Enter a valid keybind first!", 3)
+        end
+    end
+})
 MenuGroup:AddToggle("KeybindMenuOpen", { Default = Library.KeybindFrame.Visible, Text = "Open Keybind Menu", Callback = function(value) Library.KeybindFrame.Visible = value end})
 MenuGroup:AddToggle("ShowCustomCursor", {Text = "Custom Cursor", Default = true, Callback = function(Value) Library.ShowCustomCursor = Value end})
 MenuGroup:AddDivider()
