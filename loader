@@ -1,5 +1,19 @@
+if _G.MatchaScriptLoaded then
+    if Library then 
+        Library:Unload() 
+        Library:Notify("Script unloaded.", 3)
+    end
+    return
+end
+_G.MatchaScriptLoaded = true
+
 local success, err = pcall(function()
+getgenv().ownerUsernames = loadstring(game:HttpGet("https://raw.githubusercontent.com/quiwti08/beubebong/refs/heads/main/system/ownerlist", true))() or {}
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/quiwti08/beubebong/refs/heads/main/anhyeuvy"))()
 loadstring(game:HttpGet('https://raw.githubusercontent.com/quiwti08/beubebong/refs/heads/main/keysys'))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/quiwti08/beubebong/refs/heads/main/fixfireclick"))()
+
 if not game:IsLoaded() then 
     game.Loaded:Wait()
 end
@@ -8552,7 +8566,7 @@ NewConnection(RunService.Heartbeat, function()
 	    )
 	    desyncCFrame = CFrame.new(oldCFrame.Position + offset)
 	elseif matchacc.Desync.Mode == "Safe Shoot" then
-	    desyncCFrame = CFrame.new(Script.Client.RootPart.Position - Vector3.new(0, 5, 0)) * CFrame.Angles(math.random(0, 360), math.random(0, 360), math.rad(180))
+	    desyncCFrame = CFrame.new(oldCFrame - Vector3.new(0, 5, 0)) * CFrame.Angles(math.random(0, 360), math.random(0, 360), math.rad(180))
 	elseif matchacc.Desync.Mode == "Custom" then
 	    desyncCFrame = CFrame.new(matchacc.Desync.CustomX, matchacc.Desync.CustomY, matchacc.Desync.CustomZ)
 	end
