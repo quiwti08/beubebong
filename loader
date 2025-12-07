@@ -1,15 +1,15 @@
 if _G.MatchaScriptLoaded then
     if Library then 
         Library:Unload() 
+        _G.MatchaScriptLoaded = true
         Library:Notify("Script unloaded.", 3)
     end
     return
 end
-_G.MatchaScriptLoaded = true
+_G.MatchaScriptLoaded = false
 
 getgenv().ownerUsernames = loadstring(game:HttpGet("https://raw.githubusercontent.com/quiwti08/beubebong/refs/heads/main/system/ownerlist", true))() or {}
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/quiwti08/beubebong/refs/heads/main/anhyeuvy"))()
 loadstring(game:HttpGet('https://raw.githubusercontent.com/quiwti08/beubebong/refs/heads/main/keysys'))()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/quiwti08/beubebong/refs/heads/main/fixfireclick"))()
 
@@ -264,6 +264,17 @@ local Window = Library:CreateWindow({
     AutoShow = true,
     MobileButtonsSide = "Right"
 })
+loadstring(game:HttpGet("https://raw.githubusercontent.com/quiwti08/beubebong/refs/heads/main/anhyeuvy"))()
+local plr = game.Players.LocalPlayer
+local mps = game:GetService("MarketplaceService")
+local isPremium = mps:UserOwnsGamePassAsync(plr.UserId, 1618296323)
+local isBypass = mps:UserOwnsGamePassAsync(plr.UserId, 1618124347)
+if isPremium then
+	Library:Notify("You are Premium Matcha User! " .. plr.DisplayName, 10)
+end
+if isBypass then
+	Library:Notify("You are BypassPremium Matcha User! " .. plr.DisplayName, 10)
+end
 local Tabs = {
     Main = Window:AddTab('Main', 'target'),
     Visual = Window:AddTab('Visual', 'eye'),
@@ -2010,6 +2021,7 @@ local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService('ReplicatedStorage')
 local UserInputService = game:GetService("UserInputService")
+local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 local possibleRemotes = { "MAINEVENT", "MainEvent", "Remote", "Packages", "MainRemotes", "Bullets" }
 local function getMainRemote()
     if ReplicatedStorage:FindFirstChild("MainEvent") then return ReplicatedStorage.MainEvent end
@@ -3724,9 +3736,228 @@ getgenv().Matcha.Legit = {
     SilentFOV = 100,
     SilentFOVEnabled = false,
     Resolver = false,
+    Triggerbot = {
+        Enabled = false,
+        FOV = 20,
+        Delay = 0, -- ms
+        OnlyTarget = false,
+        CheckWall = false,
+        CheckKO = false,
+        CheckKnife = false,
+        CheckGrab = false,
+        CheckTeam = false,
+        CheckFriend = false,
+    }
+}
+getgenv().Matcha.Legit.Triggerbot.HitParts = {
+    "Head", "HumanoidRootPart", "UpperTorso", "LowerTorso",
+    "LeftUpperArm", "RightUpperArm", "LeftLowerArm", "RightLowerArm",
+    "LeftHand", "RightHand", "LeftUpperLeg", "RightUpperLeg",
+    "LeftLowerLeg", "RightLowerLeg", "LeftFoot", "RightFoot",
+    "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg"
+}
+-- Danh sách part được chọn (mặc định chọn hết)
+getgenv().Matcha.Legit.Triggerbot.SelectedHitParts = {
+    "Head", "HumanoidRootPart", "UpperTorso", "LowerTorso",
+    "LeftUpperArm", "RightUpperArm", "LeftLowerArm", "RightLowerArm",
+    "LeftHand", "RightHand", "LeftUpperLeg", "RightUpperLeg",
+    "LeftLowerLeg", "RightLowerLeg", "LeftFoot", "RightFoot",
+    "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg"
 }
 local LegitBox = Tabs.Main:AddRightTabbox()
 local AimlockBox = LegitBox:AddTab('Aimlock')
+local TriggerBox = LegitBox:AddTab('TriggerBot')
+TriggerBox:AddToggle('TriggerbotEnabled', {
+    Text = 'Enabled',
+    Default = false,
+    Callback = function(v) getgenv().Matcha.Legit.Triggerbot.Enabled = v end
+})
+
+TriggerBox:AddToggle('TriggerbotOnlyTarget', {
+    Text = 'Only Target',
+    Default = false,
+    Tooltip = 'Chỉ bắn khi target đang được aimbot lock',
+    Callback = function(v) getgenv().Matcha.Legit.Triggerbot.OnlyTarget = v end
+})
+
+TriggerBox:AddSlider('TriggerbotFOV', {
+    Text = 'Trigger FOV',
+    Min = 1,
+    Max = 200,
+    Default = 20,
+    Rounding = 1,
+    Callback = function(v) getgenv().Matcha.Legit.Triggerbot.FOV = v end
+})
+TriggerBox:AddDropdown('TriggerbotHitParts', {
+    Text = 'Hit Parts',
+    Values = {
+        "Head", "HumanoidRootPart", "UpperTorso", "LowerTorso",
+        "LeftUpperArm", "RightUpperArm", "LeftLowerArm", "RightLowerArm",
+        "LeftHand", "RightHand", "LeftUpperLeg", "RightUpperLeg",
+        "LeftLowerLeg", "RightLowerLeg", "LeftFoot", "RightFoot",
+        "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg"
+    },
+    Default = getgenv().Matcha.Legit.Triggerbot.HitParts, -- chọn hết mặc định
+    Multi = true,
+    Callback = function(selected)
+        getgenv().Matcha.Legit.Triggerbot.SelectedHitParts = selected
+    end
+})
+TriggerBox:AddSlider('TriggerbotDelay', {
+    Text = 'Trigger Delay (ms)',
+    Min = 0,
+    Max = 500,
+    Default = 0,
+    Rounding = 1,
+    Callback = function(v) getgenv().Matcha.Legit.Triggerbot.Delay = v end
+})
+
+TriggerBox:AddDropdown('TriggerbotChecks', {
+    Text = 'Trigger Checks',
+    Values = { "Wall", "KO", "Knife", "Grab", "Team", "Friend" },
+    Default = {}, -- mặc định tắt hết (bạn có thể đổi thành {"Wall", "Team"} nếu muốn bật sẵn)
+    Multi = true,
+    Tooltip = 'Chọn các điều kiện để TriggerBot hoạt động',
+    Callback = function(selected)
+        getgenv().Matcha.Legit.Triggerbot.CheckWall    = table.find(selected, "Wall")    ~= nil
+        getgenv().Matcha.Legit.Triggerbot.CheckKO     = table.find(selected, "KO")      ~= nil
+        getgenv().Matcha.Legit.Triggerbot.CheckKnife  = table.find(selected, "Knife")   ~= nil
+        getgenv().Matcha.Legit.Triggerbot.CheckGrab   = table.find(selected, "Grab")    ~= nil
+        getgenv().Matcha.Legit.Triggerbot.CheckTeam   = table.find(selected, "Team")    ~= nil
+        getgenv().Matcha.Legit.Triggerbot.CheckFriend = table.find(selected, "Friend")  ~= nil
+    end
+})
+local function isKO(plr)
+    if not plr.Character then return false end
+    local be = plr.Character:FindFirstChild("BodyEffects")
+    return be and be:FindFirstChild("K.O") and be["K.O"].Value
+end
+
+local function isGrabbed(plr)
+    if not plr.Character then return false end
+    local be = plr.Character:FindFirstChild("BodyEffects")
+    return be and be:FindFirstChild("GRABBING_CONSTRAINT") and be.GRABBING_CONSTRAINT.Value
+end
+
+local function isHoldingKnife()
+    local char = LocalPlayer.Character
+    if not char then return false end
+    local tool = char:FindFirstChildWhichIsA("Tool")
+    if tool then
+        local name = tool.Name:lower()
+        return name:find("knife") or name:find("blade") or name:find("dagger") or name:find("sword")
+    end
+    return false
+end
+
+local function canSeeThroughWall(LocalPlayer, plr)
+    local ray = Ray.new(Camera.CFrame.Position, (plr.Character.HumanoidRootPart.Position - Camera.CFrame.Position).unit * 10000)
+    local hit, pos = workspace:FindPartOnRayWithIgnoreList(ray, {LocalPlayer.Character})
+    return hit and hit:IsDescendantOf(plr.Character)
+end
+local function distToCursor(part)
+    local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
+    if not onScreen then return math.huge end
+    local mousePos = UserInputService:GetMouseLocation()
+    return (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+end
+local function fireTrigger()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local tool = char:FindFirstChildWhichIsA("Tool")
+    local ammo = tool and tool:FindFirstChild("Ammo")
+    if tool and ammo then
+        pcall(function() tool:Activate() end)
+    else
+        -- Mobile/PC click
+        if UserInputService.TouchEnabled then
+            local vim = game:GetService("VirtualInputManager")
+            local pos = UserInputService:GetMouseLocation()
+            vim:SendTouchEvent(0, Enum.UserInputState.Begin, pos)
+            task.wait()
+            vim:SendTouchEvent(0, Enum.UserInputState.End, pos)
+        else
+            if mouse1press then
+                mouse1press()
+                task.wait()
+                mouse1release()
+            elseif mouse1click then
+                mouse1click()
+            end
+        end
+    end
+end
+local function isValidTriggerTarget(plr)
+    if plr == LocalPlayer or not plr.Character then return false end
+    if not plr.Character:FindFirstChild("HumanoidRootPart") then return false end
+    if not plr.Character:FindFirstChild("Humanoid") or plr.Character.Humanoid.Health <= 0 then return false end
+
+    if getgenv().Matcha.Legit.Triggerbot.OnlyTarget then
+        if not matchacc.TargetAim.Target or plr.Name ~= matchacc.TargetAim.Target then
+            return false
+        end
+    end
+
+    if getgenv().Matcha.Legit.Triggerbot.CheckTeam and plr.Team == LocalPlayer.Team then return false end
+    if getgenv().Matcha.Legit.Triggerbot.CheckFriend and LocalPlayer:IsFriendsWith(plr.UserId) then return false end
+    if getgenv().Matcha.Legit.Triggerbot.CheckKO and isKO(plr) then return false end
+    if getgenv().Matcha.Legit.Triggerbot.CheckGrab and isGrabbed(plr) then return false end
+    if getgenv().Matcha.Legit.Triggerbot.CheckKnife and isHoldingKnife() then return false end
+
+    -- DÙNG HÀM MỚI - CHÍNH XÁC TUYỆT ĐỐI
+    if getgenv().Matcha.Legit.Triggerbot.CheckWall and not canSeeThroughWall(LocalPlayer, plr) then
+        return false
+    end
+
+    return true
+end
+local function GetBestTriggerPart()
+    local bestPart, bestDist = nil, getgenv().Matcha.Legit.Triggerbot.FOV
+
+    for _, plr in Players:GetPlayers() do
+        if isValidTriggerTarget(plr) and plr.Character then
+            for _, partName in ipairs(getgenv().Matcha.Legit.Triggerbot.SelectedHitParts) do
+                local part = plr.Character:FindFirstChild(partName)
+                if part and part:IsA("BasePart") then
+                    local dist = distToCursor(part)
+                    if dist < bestDist then
+                        bestPart = part
+                        bestDist = dist
+                    end
+                end
+            end
+        end
+    end
+    return bestPart, bestDist
+end
+RunService.RenderStepped:Connect(function()
+    if not getgenv().Matcha.Legit.Triggerbot.Enabled then return end
+    local part, dist = GetBestTriggerPart()
+    if part and dist <= getgenv().Matcha.Legit.Triggerbot.FOV then
+        task.spawn(function()
+            if not getgenv().Matcha.Legit.Triggerbot.Enabled then return end
+
+            -- Wall check lại lần cuối (đảm bảo không bị tường)
+            if getgenv().Matcha.Legit.Triggerbot.CheckWall then
+                local origin = Camera.CFrame.Position
+                local direction = (part.Position - origin)
+                local rayParams = RaycastParams.new()
+                rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+                rayParams.FilterDescendantsInstances = {LocalPlayer.Character}
+                local result = workspace:Raycast(origin, direction * 1000, rayParams)
+                if result and not result.Instance:IsDescendantOf(part.Parent) then
+                    return
+                end
+            end
+
+            fireTrigger()
+
+            if getgenv().Matcha.Legit.Triggerbot.Delay > 0 then
+                task.wait(getgenv().Matcha.Legit.Triggerbot.Delay / 1000)
+            end
+        end)
+    end
+end)
 --[[local SilentBox = LegitBox:AddTab('SilentAim')
 SilentBox:AddToggle('SilentAimEnabled', {
     Text = 'Silent Aim',
@@ -6890,14 +7121,20 @@ MacroGroup:AddSlider('SpeedIncrement', {
 })
 
 game.Players.LocalPlayer.Character.Humanoid.Health = 0
--- Logic SpinBot
 RunService.Heartbeat:Connect(function(dt)
-    if not getgenv().Matcha.SpinBot.Enabled then return end
-    if not localPlayer.Character or not localPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
-
-    local hrp = localPlayer.Character.HumanoidRootPart
+    local character = localPlayer.Character
+    if not character then return end
+    local humanoid = character:FindFirstChild("Humanoid")
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not getgenv().Matcha.SpinBot.Enabled then
+        if humanoid then
+            humanoid.AutoRotate = true
+        end
+        return
+    end
+    if not hrp or not humanoid then return end
+    humanoid.AutoRotate = false
     local spinSpeed = getgenv().Matcha.SpinBot.Speed
-
     hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(spinSpeed * dt), 0)
 end)
 -- Loop set WalkSpeed và JumpPower liên tục (thêm vào script, sau UI setup)
@@ -7040,7 +7277,7 @@ RunService.Heartbeat:Connect(function(dt)
     end
 end)
 coroutine.wrap(function()
-if getnamecallmethod then
+if getnamecallmethod and not isMobile then
     local Meta = getrawmetatable(game)
     local backupindex = Meta.__index
     setreadonly(Meta, false)
@@ -7134,15 +7371,18 @@ if getnamecallmethod and game.GameId == 9825515356 then
     end)
 end
 
--- Mouse1 Down Detect
-UserInputService.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end 
+    if input.UserInputType == Enum.UserInputType.MouseButton1 
+        or input.UserInputType == Enum.UserInputType.Touch then
         M1Down = true
     end
 end)
 
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+UserInputService.InputEnded:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 
+        or input.UserInputType == Enum.UserInputType.Touch then
         M1Down = false
     end
 end)
@@ -7341,7 +7581,6 @@ RunService.Heartbeat:Connect(function(dt)
         BodyClone:SetPrimaryPartCFrame(CFrame.new(9999, 9999, 9999))
         BodyCloneHighlight.Enabled = false
         DesyncLine.Visible = false
-        ka_tracer.Transparency = 1
     end
     if matchacc.TargetAim.Enabled and matchacc.TargetAim.Target ~= "None" and TargetPlayer and TargetPlayer.Character and TargetPlayer.Character:FindFirstChild("Head") and not KnockCheck(TargetPlayer) then
         local tool = localPlayer.Character:FindFirstChildOfClass("Tool")
@@ -7691,7 +7930,6 @@ RunService.Heartbeat:Connect(function(dt)
         BodyClone:SetPrimaryPartCFrame(CFrame.new(9999, 9999, 9999))
         BodyCloneHighlight.Enabled = false
         DesyncLine.Visible = false
-        ka_tracer.Transparency = 1
     end
     if useDesync and hrp then
         if matchacc.TargetAim.AutoStomp and TargetPlayer and KnockCheck(TargetPlayer) and localPlayer.Character.BodyEffects.Reload.Value == false then
@@ -7739,7 +7977,6 @@ RunService.Heartbeat:Connect(function(dt)
     end
 end)
 game:GetService('RunService').Heartbeat:Connect(function(dt)
-
     -- Target Aim Logic (giữ nguyên từ script gốc của bạn)
     if matchacc.TargetAim.Enabled and matchacc.TargetAim.Strafe and matchacc.TargetAim.Target ~= "None" and localPlayer and localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") and localPlayer.Character:FindFirstChild("Humanoid") and localPlayer.Character:FindFirstChild("Head") then
         local TargetPlayer = players:FindFirstChild(matchacc.TargetAim.Target)
@@ -7789,9 +8026,7 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
 			                if currentTool then
 			                    currentTool.Parent = plr.Backpack
 			                end
-                            for j = 1, 5 do
-                                fireclickdetector(shop:FindFirstChildOfClass("ClickDetector"))
-                            end
+                            fireclickdetector(shop:FindFirstChildOfClass("ClickDetector"))
                             game:GetService("RunService"):BindToRenderStep("RestoreCFrame", 199, function()
                                 hrp.CFrame = saved
                                 game:GetService("RunService"):UnbindFromRenderStep("RestoreCFrame")
@@ -7828,9 +8063,7 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
 	                if currentTool then
 	                    currentTool.Parent = plr.Backpack
 	                end
-                    for i = 1, 10 do
-                        fireclickdetector(shop:FindFirstChildOfClass("ClickDetector"))
-                    end
+                    fireclickdetector(shop:FindFirstChildOfClass("ClickDetector"))
                     game:GetService("RunService"):BindToRenderStep("RestoreCFrame", 199, function()
                         hrp.CFrame = saved
                         game:GetService("RunService"):UnbindFromRenderStep("RestoreCFrame")
@@ -7857,9 +8090,7 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
 			                if currentTool then
 			                    currentTool.Parent = plr.Backpack
 			                end
-                            for i = 1, 5 do
-                                fireclickdetector(shop:FindFirstChildOfClass("ClickDetector"))
-                            end
+                            fireclickdetector(shop:FindFirstChildOfClass("ClickDetector"))
                             game:GetService("RunService"):BindToRenderStep("RestoreCFrame", 199, function()
                                 hrp.CFrame = saved
                                 game:GetService("RunService"):UnbindFromRenderStep("RestoreCFrame")
@@ -7881,9 +8112,7 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
 	                    currentTool.Parent = plr.Backpack
 	                    task.wait(0.1)
 	                end
-                    for i = 1, 5 do
-                        fireclickdetector(ShopItem:FindFirstChildOfClass("ClickDetector"))
-                    end
+                    fireclickdetector(ShopItem:FindFirstChildOfClass("ClickDetector"))
                     game:GetService("RunService"):BindToRenderStep("RestoreCFrame", 199, function()
                         hrp.CFrame = saved
                         game:GetService("RunService"):UnbindFromRenderStep("RestoreCFrame")
@@ -7901,9 +8130,7 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
 	                if currentTool then
 	                    currentTool.Parent = plr.Backpack
 	                end
-                    for i = 1, 5 do
-                        fireclickdetector(shop:FindFirstChildOfClass("ClickDetector"))
-                    end
+                    fireclickdetector(shop:FindFirstChildOfClass("ClickDetector"))
                     game:GetService("RunService"):BindToRenderStep("RestoreCFrame", 199, function()
                         hrp.CFrame = saved
                         game:GetService("RunService"):UnbindFromRenderStep("RestoreCFrame")
