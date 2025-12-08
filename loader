@@ -240,7 +240,7 @@ local Window = Library:CreateWindow({
 	ShowCustomCursor = false,
     Compact = true,
     AutoShow = true,
-    MobileButtonsSide = "Right"
+    MobileButtonsSide = "Left"
 })
 local plr = game.Players.LocalPlayer
 local mps = game:GetService("MarketplaceService")
