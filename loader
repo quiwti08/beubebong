@@ -1895,13 +1895,11 @@ local HitChamsSkeleton = LPH_NO_VIRTUALIZE(function(Player)
 end)
 local Debris = game:GetService("Debris")
 
--- Function to trigger hit effects
 local function TriggerHitEffects(hitPart, targetChar)
-    -- HitEffect (particle from container)
     if matchacc.HitEffects.HitEffect.Enabled then
         local effectType = matchacc.HitEffects.HitEffect.Type
         local container = workspace:FindFirstChild("MatchaHitEffects")
-        if container then
+        if container and HitEffects[effectType] then  -- Check tồn tại
             local effect = container:FindFirstChild(effectType)
             if effect then
                 local cloned = effect:Clone()
@@ -1915,11 +1913,10 @@ local function TriggerHitEffects(hitPart, targetChar)
                         end
                     end
                 end
-                Debris:AddItem(cloned, matchacc.HitEffects.HitChams.Lifetime) -- Reuse lifetime from HitChams
+                Debris:AddItem(cloned, matchacc.HitEffects.HitChams.Lifetime)
             end
         end
     end
-
 end
 local function levenshtein(s, t)
     local m, n = #s, #t
@@ -4686,17 +4683,12 @@ ESPGroup:AddSlider('ESPFadeSpeed', {
     end
 })
 coroutine.wrap(function()
--- Table cho các aura (hỗ trợ nhiều)
-local Auras = {
-    Selected = {},  -- Các aura được chọn từ dropdown (multi)
-    Enabled = false,  -- Toggle chung
-}
 
 -- Màu chung cho tất cả aura
 local AuraColor = Color3.new(1, 1, 1)  -- Default white
 
 -- Function để attach Aura Wing (dựa XML gốc, đầy đủ thuộc tính)
-local function AttachAuraWing(character)
+local function AttachAuraWing(character, AuraColor)
     local torso = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")
     if not torso then return end
     
@@ -5040,7 +5032,7 @@ local function AttachAuraSafe(character)
     local pointLight = Instance.new("PointLight")
     pointLight.Range = 5
     pointLight.Brightness = 3
-    pointLight.Color = AuraColor
+    pointLight.Color = AuraColors.Safe
     pointLight.Enabled = true
     pointLight.Shadows = false
     pointLight.Parent = container
@@ -5053,7 +5045,7 @@ local function AttachAuraSafe(character)
     local particleGlow = Instance.new("ParticleEmitter")
     particleGlow.Acceleration = Vector3.new(0, 0, 0)
     particleGlow.Brightness = 1
-    particleGlow.Color = ColorSequence.new(AuraColor)
+    particleGlow.Color = ColorSequence.new(AuraColors.Safe)
     particleGlow.Drag = 0
     particleGlow.EmissionDirection = Enum.NormalId.Back
     particleGlow.Enabled = true
@@ -5098,7 +5090,7 @@ local function AttachAuraSafe(character)
     beamSafe1.Attachment0 = attach2Lower
     beamSafe1.Attachment1 = attach2Upper
     beamSafe1.Brightness = 1
-    beamSafe1.Color = ColorSequence.new(Color3.new(0.333333, 0.666667, 1), Color3.new(0.333333, 0.666667, 1))
+    beamSafe1.Color = ColorSequence.new(AuraColors.Safe)
     beamSafe1.CurveSize0 = 0
     beamSafe1.CurveSize1 = 0
     beamSafe1.Enabled = true
@@ -5120,7 +5112,7 @@ local function AttachAuraSafe(character)
     beamSafe2.Attachment0 = attach2Lower
     beamSafe2.Attachment1 = attach2Upper
     beamSafe2.Brightness = 1
-    beamSafe2.Color = ColorSequence.new(Color3.new(0, 0.666667, 0), Color3.new(0, 0.666667, 0))
+    beamSafe2.Color = ColorSequence.new(AuraColors.Safe)
     beamSafe2.CurveSize0 = 0
     beamSafe2.CurveSize1 = 0
     beamSafe2.Enabled = true
@@ -5142,7 +5134,7 @@ local function AttachAuraSafe(character)
     beamSafe3.Attachment0 = attach2Lower
     beamSafe3.Attachment1 = attach2Upper
     beamSafe3.Brightness = 1
-    beamSafe3.Color = ColorSequence.new(Color3.new(1, 0.333333, 1), Color3.new(1, 0.333333, 1))
+    beamSafe3.Color = ColorSequence.new(AuraColors.Safe)
     beamSafe3.CurveSize0 = 0
     beamSafe3.CurveSize1 = 0
     beamSafe3.Enabled = true
@@ -5174,7 +5166,7 @@ local function AttachAuraSafe(character)
     beamSymbol.Attachment0 = topSymbolAttach
     beamSymbol.Attachment1 = bottomSymbolAttach
     beamSymbol.Brightness = 1
-    beamSymbol.Color = ColorSequence.new(AuraColor)
+    beamSymbol.Color = ColorSequence.new(AuraColors.Safe)
     beamSymbol.CurveSize0 = 0.5
     beamSymbol.CurveSize1 = 0.5
     beamSymbol.Enabled = true
@@ -5193,120 +5185,128 @@ local function AttachAuraSafe(character)
     beamSymbol.Parent = container
 end
 
-local function AttachAuras(character)
-    -- Clear all old auras first
-    for _, child in ipairs(character:GetChildren()) do
-        if child:IsA("Folder") and string.find(child.Name, "Aura") then child:Destroy() end
-    end
-    
-    if not Auras.Enabled then return end
-    
-    for _, aura in ipairs(Auras.Selected) do
-        if aura == "Wing" then
-            AttachAuraWing(character)
-        elseif aura == "WingAngel" then
-            AttachAuraWingAngel(character)
-        elseif aura == "Safe" then
-            AttachAuraSafe(character)
-        end
-        -- Thêm aura khác nếu có
-    end
-end
+-- Config global cho Aura (nếu cần, nhưng mỗi aura có color riêng từ picker)
+local AuraColors = {
+    WingAngel1 = Color3.fromRGB(255, 255, 255),
+    WingAngel2 = Color3.fromRGB(255, 0, 0),
+    Safe = Color3.fromRGB(255, 255, 255)
+}
+local ToggledAuras = {}  -- Track auras bật: {name = true}
 
---[[local AuraGroup = Tabs.Visual:AddRightGroupbox('Aura')
-
-local AuraConnection = nil
-
-local function ApplyAuras()
-    local char = localPlayer.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-
-    -- Xóa hết aura cũ trước
-    for _, folderName in pairs({"AuraWing", "AuraWingAngel", "AuraSafe"}) do
-        local old = char:FindFirstChild(folderName) or (char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso")):FindFirstChild(folderName)
-        if old then old:Destroy() end
-    end
-
-    if not Auras.Enabled or #Auras.Selected == 0 then return end
-
-    for _, auraName in pairs(Auras.Selected) do
-        if auraName == "Wing" then
-            AttachAuraWing(char)
-        elseif auraName == "WingAngel" then
-            AttachAuraWingAngel(char)
-        elseif auraName == "Safe" then
-            AttachAuraSafe(char)
-        end
+-- Function chung để attach và re-attach khi reset character (100 năm kinh nghiệm fix leak memory)
+local function SetupAura(character, auraName)
+    if not character then return end
+    local AuraColor = AuraColors[auraName]  -- Lấy color từ picker
+    if auraName == "WingAngel1" then
+        AttachAuraWing(character)
+    elseif auraName == "WingAngel2" then
+        AttachAuraWingAngel(character)
+    elseif auraName == "Safe" then
+        AttachAuraSafe(character)
     end
 end
 
--- Khi toggle bật/tắt, chọn aura, đổi màu → apply ngay lập tức
-local function StartAuraLoop()
-    if AuraConnection then AuraConnection:Disconnect() end
-    AuraConnection = RunService.Heartbeat:Connect(function()
-        if Auras.Enabled and localPlayer.Character then
-            ApplyAuras()
+-- Listen CharacterAdded để re-attach (an toàn, không loop vô tận)
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+LocalPlayer.CharacterAdded:Connect(function(newChar)
+    for auraName, toggled in pairs(ToggledAuras) do
+        if toggled then
+            task.wait(0.5)  -- Đợi char load đầy đủ (fix error nil torso)
+            SetupAura(newChar, auraName)
         end
-    end)
-end
-
--- UI Callbacks (chỉ cần thay callback thành gọi ApplyAuras)
-AuraGroup:AddToggle('AuraEnabledToggle', {
-    Text = 'Aura Enabled',
-    Default = false,
-    Callback = function(Value)
-        Auras.Enabled = Value
-        if Value then
-            ApplyAuras()
-            StartAuraLoop() -- bắt đầu loop update realtime
-        else
-            if AuraConnection then AuraConnection:Disconnect() end
-            -- Xóa aura nếu tắt
-            pcall(function()
-                local torso = localPlayer.Character:FindFirstChild("UpperTorso") or localPlayer.Character:FindFirstChild("Torso")
-                if torso then
-                    for _, v in pairs(torso:GetChildren()) do
-                        if v.Name:find("Aura") then v:Destroy() end
-                    end
-                end
-            end)
-        end
-    end
-}):AddColorPicker('AuraColorPicker', {
-    Default = Color3.new(1,1,1),
-    Title = 'Aura Color',
-    Callback = function(Value)
-        AuraColor = Value
-        ApplyAuras() -- đổi màu realtime luôn
-    end
-})
-
-AuraGroup:AddDropdown('AuraSelect', {
-    Values = {'Wing', 'WingAngel', 'Safe'},
-    Default = {},
-    Multi = true,
-    Text = 'Select Auras',
-    Callback = function(Value)
-        Auras.Selected = Value
-        ApplyAuras() -- đổi aura realtime luôn
-    end
-})
-
--- Respawn vẫn giữ aura
-localPlayer.CharacterAdded:Connect(function(char)
-    char:WaitForChild("HumanoidRootPart", 10)
-    task.wait(1)
-    if Auras.Enabled then
-        ApplyAuras()
-        if Auras.Enabled then StartAuraLoop() end
     end
 end)
 
--- Nếu đang trong game và bật aura thì apply ngay
-if localPlayer.Character and Auras.Enabled then
-    ApplyAuras()
-    StartAuraLoop()
-end]]
+local AuraGroup = Tabs.Visual:AddLeftGroupbox('AuraGroup')
+
+--[[AuraGroup:AddToggle('WingAngel1Toggle', {
+    Text = 'WingAngel1',
+    Default = false, 
+    Tooltip = 'Toggle WingAngel1 Aura',
+    Callback = function(Value)
+        ToggledAuras["WingAngel1"] = Value
+        if Value then
+            SetupAura(LocalPlayer.Character, "WingAngel1")
+        else
+            -- Destroy nếu off (fix memory leak)
+            local torso = LocalPlayer.Character and (LocalPlayer.Character:FindFirstChild("UpperTorso") or LocalPlayer.Character:FindFirstChild("Torso"))
+            if torso then
+                local aura = torso:FindFirstChild("AuraWing")
+                if aura then aura:Destroy() end
+            end
+        end
+    end
+}):AddColorPicker('WingAngel1Color', {
+    Default = AuraColors.WingAngel1,
+    Title = 'Aura Color',
+    Callback = function(Value)
+        AuraColors.WingAngel1 = Value
+        if ToggledAuras["WingAngel1"] then
+            SetupAura(LocalPlayer.Character, "WingAngel1") -- Re-attach với color mới
+        end
+    end
+})
+
+AuraGroup:AddToggle('WingAngel2Toggle', {
+    Text = 'WingAngel2',
+    Default = false,
+    Tooltip = 'Toggle WingAngel2 Aura',
+    Callback = function(Value)
+        ToggledAuras["WingAngel2"] = Value
+        if Value then
+            SetupAura(LocalPlayer.Character, "WingAngel2")
+        else
+            local torso = LocalPlayer.Character and (LocalPlayer.Character:FindFirstChild("UpperTorso") or LocalPlayer.Character:FindFirstChild("Torso"))
+            if torso then
+                local aura = torso:FindFirstChild("AuraWingAngel")
+                if aura then aura:Destroy() end
+            end
+        end
+    end
+}):AddColorPicker('WingAngel2Color', {
+    Default = AuraColors.WingAngel2,
+    Title = 'Aura Color',
+    Callback = function(Value)
+        AuraColors.WingAngel2 = Value
+        if ToggledAuras["WingAngel2"] then
+            SetupAura(LocalPlayer.Character, "WingAngel2")
+        end
+    end
+})]]
+
+AuraGroup:AddToggle('SafeToggle', {
+    Text = 'Safe',
+    Default = false,
+    Tooltip = 'Toggle Safe Aura',
+    Callback = function(Value)
+        ToggledAuras["Safe"] = Value
+        if Value then
+            SetupAura(LocalPlayer.Character, "Safe")
+        else
+            local torso = LocalPlayer.Character and (LocalPlayer.Character:FindFirstChild("UpperTorso") or LocalPlayer.Character:FindFirstChild("Torso"))
+            if torso then
+                local aura = torso:FindFirstChild("AuraSafe")
+                if aura then aura:Destroy() end
+            end
+        end
+    end
+}):AddColorPicker('SafeColor', {
+    Default = AuraColors.Safe,
+    Title = 'Aura Color',
+    Callback = function(Value)
+        AuraColors.Safe = Value
+        if ToggledAuras["Safe"] then
+            SetupAura(LocalPlayer.Character, "Safe")
+        end
+    end
+})
+-- Init nếu char đã tồn tại (fix khi inject muộn)
+if LocalPlayer.Character then
+    for auraName in pairs(ToggledAuras) do
+        SetupAura(LocalPlayer.Character, auraName)
+    end
+end
 end)()
 local SelfGroup = Tabs.Visual:AddRightGroupbox('Self')
 utility = utility or {}
@@ -6178,7 +6178,7 @@ local function rainParticleEmitter()
     rainEmitter.Orientation = Enum.ParticleOrientation.FacingCameraWorldUp
     rainEmitter.Size = NumberSequence.new(0.4)
     rainEmitter.Squash = NumberSequence.new(4)
-    rainEmitter.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+    rainEmitter.Texture = "rbxassetid://129110349"
     rainEmitter.EmissionDirection = Enum.NormalId.Bottom
     rainEmitter.Lifetime = NumberRange.new(RainSettings.Lifetime)
     rainEmitter.Rate = RainSettings.Rate
@@ -6235,7 +6235,10 @@ local function snowParticleEmitter()
     snowEmitter.ShapeInOut = Enum.ParticleEmitterShapeInOut.Outward
     snowEmitter.ShapePartial = 1
     snowEmitter.ShapeStyle = Enum.ParticleEmitterShapeStyle.Volume
-    snowEmitter.Size = NumberSequence.new(0.4)
+    snowEmitter.Size = NumberSequence.new({
+	    NumberSequenceKeypoint.new(0, 0.2, 0.4),  -- Lúc bắt đầu hạt có size random 0.2–0.4
+	    NumberSequenceKeypoint.new(1, 0.2, 0.4)   -- Lúc kết thúc hạt cũng random 0.2–0.4
+	})
     snowEmitter.Speed = NumberRange.new(SnowSettings.Speed)
     snowEmitter.SpreadAngle = Vector2.new(90,90)
     snowEmitter.Squash = NumberSequence.new(0)
@@ -12485,116 +12488,30 @@ local function makeSmoothDraggable(frame, speed)
     end)
 end
 local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
-local function MakeTool(ToolKeybind, ToolInstanceName)
-    local ToolInstance = Instance.new("Tool")
-    ToolInstance.RequiresHandle = false
-    ToolInstance.Name = ToolKeybind
-    ToolInstance.Activated:Connect(function()
-        game:GetService("VirtualInputManager"):SendKeyEvent(true, ToolKeybind, false, game)
-    end)
-    ToolInstance.Parent = game.Players.LocalPlayer.Backpack
-
-    local Player = game.Players.LocalPlayer
-    local function OnCharacterAdded(character)
-        ToolInstance.Parent = Player.Backpack
-    end
-    Player.CharacterAdded:Connect(OnCharacterAdded)
-
-    Player.CharacterRemoving:Connect(function()
-        ToolInstance.Parent = Player.Backpack
-    end)
-end
-
--- Function MakeButton (sửa nhỏ: thêm check tồn tại ScreenGui, làm draggable nếu có function)
-local function MakeButton(ButtonKeybind, ButtInstanceName)
-    local player = game.Players.LocalPlayer
-    local parent = game:GetService("RunService"):IsStudio() and player.PlayerGui or player:WaitForChild("PlayerGui")
-
-    -- Check nếu đã tồn tại thì destroy trước
-    local existingGui = parent:FindFirstChild(ButtInstanceName or "CustomButtonGui")
-    if existingGui then existingGui:Destroy() end
-
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = ButtInstanceName or "CustomButtonGui"
-    screenGui.DisplayOrder = 100
-    screenGui.Parent = parent
-
-    local Button = Instance.new("TextButton")
-    Button.Parent = screenGui
-    Button.Name = ButtonKeybind
-    Button.Size = UDim2.new(0, 60, 0, 60)
-    Button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    Button.AnchorPoint = Vector2.new(0.5, 0.5)
-    Button.Position = UDim2.new(0.5, 0, 0.5, 0)
-    Button.Text = ButtonKeybind
-    Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Button.Font = Enum.Font.GothamSemibold
-    Button.TextSize = 22
-    Button.BorderSizePixel = 0
-    Button.AutoButtonColor = false
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(1, 0)
-    corner.Parent = Button
-
-    makeSmoothDraggable(Button)
-
-    Button.MouseButton1Click:Connect(function()
-        game:GetService("VirtualInputManager"):SendKeyEvent(true, ButtonKeybind, false, game)
-    end)
-end
-
--- UI phần: Sử dụng AddInput cho Textbox, AddButton cho Button
-MenuGroup:AddInput('ToolKeybind', {
-    Default = '',
-    Numeric = false,
-    Finished = true,
-    Text = 'Tool Keybind',
-    Placeholder = 'Enter Keybind (e.g. Q)',
-    Callback = function(Value)
-        -- Optional: Lưu value nếu cần, nhưng không bắt buộc
-    end
-})
-
-MenuGroup:AddButton({
-    Text = 'Make Tool',
-    Func = function()
-        local key = Options.ToolKeybind.Value  -- Lấy từ Options (flags)
-        if key and key ~= '' then
-            MakeTool(key, key)
-            Library:Notify("Tool created: " .. key, 3)
-        else
-            Library:Notify("Enter a valid keybind first!", 3)
-        end
-    end
-})
-
-SettingsGroup:AddInput('ToolKeybind', {
-    Flag = 'ToolKeybind',  -- Thêm này để bind Options.ToolKeybind
-    Default = '',
-    Numeric = false,
-    Finished = true,
-    Text = 'Tool Keybind',
-    Placeholder = 'Enter Keybind (e.g. Q)',
-    Callback = function(Value)
-        -- Optional: Lưu hoặc check, ví dụ uppercase key
-        if Value then Value = string.upper(Value) end
-    end
-})
-MenuGroup:AddButton({
-    Text = 'Make Button',
-    Func = function()
-        local key = Options.ButtonKeybind.Value
-        if key and key ~= '' then
-            MakeButton(key, key)
-            Library:Notify("Button created: " .. key, 3)
-        else
-            Library:Notify("Enter a valid keybind first!", 3)
-        end
-    end
-})
 MenuGroup:AddToggle("KeybindMenuOpen", { Default = Library.KeybindFrame.Visible, Text = "Open Keybind Menu", Callback = function(value) Library.KeybindFrame.Visible = value end})
-MenuGroup:AddToggle("ShowCustomCursor", {Text = "Custom Cursor", Default = true, Callback = function(Value) Library.ShowCustomCursor = Value end})
+MenuGroup:AddDropdown("NotificationSide", {
+	Values = { "Left", "Right" },
+	Default = "Right",
+
+	Text = "Notification Side",
+
+	Callback = function(Value)
+		Library:SetNotifySide(Value)
+	end,
+})
+MenuGroup:AddDropdown("DPIDropdown", {
+	Values = { "50%", "75%", "100%", "125%", "150%", "175%", "200%" },
+	Default = "100%",
+
+	Text = "DPI Scale",
+
+	Callback = function(Value)
+		Value = Value:gsub("%%", "")
+		local DPI = tonumber(Value)
+
+		Library:SetDPIScale(DPI)
+	end,
+})
 MenuGroup:AddDivider()
 MenuGroup:AddLabel("Menu bind"):AddKeyPicker("MenuKeybind", { Default = "RightShift", NoUI = true, Text = "Menu keybind" })
 MenuGroup:AddButton("Unload", function() Library:Unload() end)
