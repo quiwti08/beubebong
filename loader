@@ -4686,7 +4686,11 @@ coroutine.wrap(function()
 
 -- Màu chung cho tất cả aura
 local AuraColor = Color3.new(1, 1, 1)  -- Default white
-
+local AuraColors = {
+    WingAngel1 = Color3.fromRGB(255, 255, 255),
+    WingAngel2 = Color3.fromRGB(255, 0, 0),
+    Safe = Color3.fromRGB(255, 255, 255)
+}
 -- Function để attach Aura Wing (dựa XML gốc, đầy đủ thuộc tính)
 local function AttachAuraWing(character, AuraColor)
     local torso = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")
@@ -5186,11 +5190,6 @@ local function AttachAuraSafe(character)
 end
 
 -- Config global cho Aura (nếu cần, nhưng mỗi aura có color riêng từ picker)
-local AuraColors = {
-    WingAngel1 = Color3.fromRGB(255, 255, 255),
-    WingAngel2 = Color3.fromRGB(255, 0, 0),
-    Safe = Color3.fromRGB(255, 255, 255)
-}
 local ToggledAuras = {}  -- Track auras bật: {name = true}
 
 -- Function chung để attach và re-attach khi reset character (100 năm kinh nghiệm fix leak memory)
