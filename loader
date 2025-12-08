@@ -1,7 +1,10 @@
-if _G.MatchaScriptLoaded then
+if not _G.MatchaScriptLoaded then
     if Library then 
         Library:Unload() 
         _G.MatchaScriptLoaded = true
+        matchacc.TargetAim.Enabled = false
+        matchacc.TargetAim.Target = "None"
+        esp.enabled = false
         Library:Notify("Script unloaded.", 3)
     end
     return
