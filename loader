@@ -2,9 +2,6 @@ if not _G.MatchaScriptLoaded then
     if Library then 
         Library:Unload() 
         _G.MatchaScriptLoaded = true
-        matchacc.TargetAim.Enabled = false
-        matchacc.TargetAim.Target = "None"
-        esp.enabled = false
         Library:Notify("Script unloaded.", 3)
     end
     return
@@ -257,20 +254,32 @@ local ownerList = {
     ["anhchangm53"] = true,
 }
 local isOwner = ownerList and ownerList[plr.Name] == true
-local hasPremium = mps:UserOwnsGamePassAsync(plr.UserId, 1618296323)  -- Premium
-local hasBypass  = mps:UserOwnsGamePassAsync(plr.UserId, 1618124347)  -- Bypass Premium
+local function checkPremium()
+    local owns = false
+    pcall(function() owns = mps:UserOwnsGamePassAsync(plr.UserId,1618296323) end)
+    return owns or (getgenv().premiumUsers and getgenv().premiumUsers[plr.Name])
+end
+
+local function checkBypass()
+    local owns = false
+    pcall(function() owns = mps:UserOwnsGamePassAsync(plr.UserId,1618124347) end)
+    return owns or (getgenv().bypassUsers and getgenv().bypassUsers[plr.Name])
+end
+
+local hasPremium = checkPremium()
+local hasBypass  = checkBypass()
 if isOwner then
-    Library:Notify("Owner Matcha User! " .. plr.DisplayName .. " (@" .. plr.Name .. ")", 15)
+    Library:Notify("Owner Matcha User! Welcome " .. plr.DisplayName .. " (@" .. plr.Name .. ")", 15)
 end
 if hasBypass then
-    Library:Notify("BypassPremium Matcha User! " .. plr.DisplayName .. " (@" .. plr.Name .. ")", 12)
+    Library:Notify("BypassPremium User! Welcome " .. plr.DisplayName .. " (@" .. plr.Name .. ")", 12)
 end
 if hasPremium then
-    Library:Notify("Premium Matcha User! " .. plr.DisplayName .. " (@" .. plr.Name .. ")", 10)
+    Library:Notify("Premium User! Welcome " .. plr.DisplayName .. " (@" .. plr.Name .. ")", 10)
 end
 if not isOwner then
     if not hasBypass and not hasPremium then
-        Library:Notify("Freemium Matcha User! " .. plr.DisplayName .. " (@" .. plr.Name .. ")", 8)
+        Library:Notify("Freemium User! Welcome " .. plr.DisplayName .. " (@" .. plr.Name .. ")", 10)
     end
 end
 local Tabs = {
