@@ -1,12 +1,4 @@
-if not _G.MatchaScriptLoaded then
-    if Library then 
-        Library:Unload() 
-        _G.MatchaScriptLoaded = true
-        Library:Notify("Script unloaded.", 3)
-    end
-    return
-end
-_G.MatchaScriptLoaded = false
+
 
 loadstring(game:HttpGet('https://raw.githubusercontent.com/quiwti08/beubebong/refs/heads/main/keysys'))()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/quiwti08/beubebong/refs/heads/main/fixfireclick"))()
