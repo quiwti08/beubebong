@@ -1,5 +1,3 @@
-
-
 loadstring(game:HttpGet('https://raw.githubusercontent.com/quiwti08/beubebong/refs/heads/main/keysys'))()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/quiwti08/beubebong/refs/heads/main/fixfireclick"))()
 
@@ -276,6 +274,7 @@ if not isOwner then
 end
 local Tabs = {
     Main = Window:AddTab('Main', 'target'),
+    Player = Window:AddTab('Player', 'users'),
     Visual = Window:AddTab('Visual', 'eye'),
     Character = Window:AddTab('Character', 'user'),
     Misc = Window:AddTab('Misc', 'heart'),
@@ -7388,7 +7387,7 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
                         local shop = game.Workspace.Ignored.Shop:FindFirstChild(ShopTable[AmmoName].ShopName)
                         if shop and shop:FindFirstChild("Head") then
                             local hrp = char.HumanoidRootPart
-                            local saved = hrp.CFrame
+                            local SavedPosition = hrp.CFrame
                             hrp.CFrame = shop.Head.CFrame
 			                local currentTool = char:FindFirstChildOfClass("Tool")
 			                if currentTool then
@@ -7396,7 +7395,7 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
 			                end
                             fireclickdetector(shop:FindFirstChildOfClass("ClickDetector"))
                             game:GetService("RunService"):BindToRenderStep("RestoreCFrame", 199, function()
-                                hrp.CFrame = saved
+                                hrp.CFrame = SavedPosition
                                 game:GetService("RunService"):UnbindFromRenderStep("RestoreCFrame")
                             end)
                         end
@@ -7425,7 +7424,7 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
             if BuyingSingle and not char:FindFirstChild(SelectedGun) and not plr.Backpack:FindFirstChild(SelectedGun) then
                 local shop = game.Workspace.Ignored.Shop:FindFirstChild(ShopTable[SelectedGun].ShopName)
                 if shop and shop:FindFirstChild("Head") then
-                    local saved = hrp.CFrame
+                    local SavedPosition = hrp.CFrame
                     hrp.CFrame = shop.Head.CFrame
 	                local currentTool = char:FindFirstChildOfClass("Tool")
 	                if currentTool then
@@ -7433,7 +7432,7 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
 	                end
                     fireclickdetector(shop:FindFirstChildOfClass("ClickDetector"))
                     game:GetService("RunService"):BindToRenderStep("RestoreCFrame", 199, function()
-                        hrp.CFrame = saved
+                        hrp.CFrame = SavedPosition
                         game:GetService("RunService"):UnbindFromRenderStep("RestoreCFrame")
                     end)
                 end
@@ -7452,7 +7451,7 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
                             if gunObj then
                                 gunObj.Parent = plr.Backpack
                             end
-                            local saved = hrp.CFrame
+                            local SavedPosition = hrp.CFrame
                             hrp.CFrame = shop.Head.CFrame
 			                local currentTool = char:FindFirstChildOfClass("Tool")
 			                if currentTool then
@@ -7460,7 +7459,7 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
 			                end
                             fireclickdetector(shop:FindFirstChildOfClass("ClickDetector"))
                             game:GetService("RunService"):BindToRenderStep("RestoreCFrame", 199, function()
-                                hrp.CFrame = saved
+                                hrp.CFrame = SavedPosition
                                 game:GetService("RunService"):UnbindFromRenderStep("RestoreCFrame")
                             end)
                         end
@@ -7473,7 +7472,7 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
                 -- Thả tool đang cầm nếu có
                 local ShopItem = game.Workspace.Ignored.Shop:FindFirstChild(ShopTable[headshots.AutoLoadout.Gun].ShopName)
                 if ShopItem and ShopItem:FindFirstChild("Head") then
-                    local saved = hrp.CFrame
+                    local SavedPosition = hrp.CFrame
                     hrp.CFrame = ShopItem.Head.CFrame
 	                local currentTool = char:FindFirstChildOfClass("Tool")
 	                if currentTool then
@@ -7482,7 +7481,7 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
 	                end
                     fireclickdetector(ShopItem:FindFirstChildOfClass("ClickDetector"))
                     game:GetService("RunService"):BindToRenderStep("RestoreCFrame", 199, function()
-                        hrp.CFrame = saved
+                        hrp.CFrame = SavedPosition
                         game:GetService("RunService"):UnbindFromRenderStep("RestoreCFrame")
                     end)
                 end
@@ -7492,7 +7491,7 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
                 local shop = game.Workspace.Ignored.Shop:FindFirstChild('[High-Medium Armor] - $2513')
                 if shop and shop:FindFirstChild("Head") then
                     local oldArmor = char.BodyEffects.Armor.Value
-                    local saved = hrp.CFrame
+                    local SavedPosition = hrp.CFrame
                     hrp.CFrame = shop.Head.CFrame
 	                local currentTool = char:FindFirstChildOfClass("Tool")
 	                if currentTool then
@@ -7500,7 +7499,7 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
 	                end
                     fireclickdetector(shop:FindFirstChildOfClass("ClickDetector"))
                     game:GetService("RunService"):BindToRenderStep("RestoreCFrame", 199, function()
-                        hrp.CFrame = saved
+                        hrp.CFrame = SavedPosition
                         game:GetService("RunService"):UnbindFromRenderStep("RestoreCFrame")
                     end)
                     if char.BodyEffects.Armor.Value > oldArmor then
@@ -7512,8 +7511,19 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
 end)
 RunService.Heartbeat:Connect(function(dt)
     if matchacc.TargetAim.AutoKill and not (TargetAimActive or AutoArmorActive or AutoLoadoutActive or BuyingSingleActive or BuyingAmmoActive) then
-        local targetName = matchacc.TargetAim.Target  -- Sử dụng target từ TargetAim
-        if targetName ~= nil and targetName ~= "None" then  -- Thêm check "None" để tránh target default
+        local targetName = matchacc.TargetAim.Target -- Sử dụng target từ TargetAim
+        if getgenv().lastTarget ~= targetName then
+            -- Force restore vị trí khi target thay đổi để tránh stuck từ target cũ
+            if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local SavedPosition = getgenv().lastSavedPosition or localPlayer.Character.HumanoidRootPart.CFrame
+                RunService:BindToRenderStep("RestoreCFrame", 199, function()
+                    localPlayer.Character.HumanoidRootPart.CFrame = SavedPosition
+                    RunService:UnbindFromRenderStep("RestoreCFrame")
+                end)
+            end
+            getgenv().lastTarget = targetName
+        end
+        if targetName ~= nil and targetName ~= "None" then -- Thêm check "None" để tránh target default
             local Target = players:FindFirstChild(targetName)
             if Target and Target.Character and localPlayer and localPlayer.Character then
                 local humanoidRootPart = localPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -7522,22 +7532,23 @@ RunService.Heartbeat:Connect(function(dt)
                 local toolHandle = tool and tool:FindFirstChild("Handle")
                 local targetHRP = Target.Character:FindFirstChild("HumanoidRootPart")
                 local targetHead = Target.Character:FindFirstChild("Head")
-                local SavedPosition = localPlayer.Character.HumanoidRootPart.CFrame
                 if humanoidRootPart and head and toolHandle and targetHRP and targetHead then
+                    local SavedPosition = humanoidRootPart.CFrame -- Lưu vị trí trước mỗi hành động để cập nhật động
+                    getgenv().lastSavedPosition = SavedPosition
                     if not KnockCheck(Target) then
                         if not Target.Character:FindFirstChild("ForceField") then
-                            localPlayer.Character.HumanoidRootPart.CFrame = CFrame.lookAt(Target.Character.Head.Position + Vector3.new(math.random(-15,15), math.random(-15,15), math.random(-15,15)), Target.Character.Head.Position)
+                            humanoidRootPart.CFrame = CFrame.lookAt(Target.Character.Head.Position + Vector3.new(math.random(-15,15), math.random(-15,15), math.random(-15,15)), Target.Character.Head.Position)
                             Library:Notify("Matcha.cc - Shooting Target.", 1)
                             MainEvent:FireServer("ShootGun", toolHandle, toolHandle.Position, Target.Character.Head.Position, targetHead, Vector3.new(0, 1, 0))
                         else
-                            localPlayer.Character.HumanoidRootPart.CFrame += Vector3.new(math.random(-1000000,1000000), math.random(0,1000000), math.random(-1000000,1000000))
+                            humanoidRootPart.CFrame += Vector3.new(math.random(-1000000,1000000), math.random(0,1000000), math.random(-1000000,1000000))
                             Library:Notify("Matcha.cc - Waiting.. Target has spawn protection.", 1)
                             MainEvent:FireServer("Reload", tool)
                         end
-						RunService:BindToRenderStep("RestoreCFrame", 199, function()
-							localPlayer.Character.HumanoidRootPart.CFrame = SavedPosition
-							RunService:UnbindFromRenderStep("RestoreCFrame")
-						end)
+                        RunService:BindToRenderStep("RestoreCFrame", 199, function()
+                            humanoidRootPart.CFrame = SavedPosition
+                            RunService:UnbindFromRenderStep("RestoreCFrame")
+                        end)
                     else
                         -- Handle dead targets
                         local bodyEffects = Target.Character:FindFirstChild("BodyEffects")
@@ -7550,22 +7561,22 @@ RunService.Heartbeat:Connect(function(dt)
                             end
                         elseif isDead == true then
                             -- Move to safe position when target is dead
-                            localPlayer.Character.HumanoidRootPart.CFrame += Vector3.new(math.random(-1000000,1000000), math.random(0,1000000), math.random(-1000000,1000000))
+                            humanoidRootPart.CFrame += Vector3.new(math.random(-1000000,1000000), math.random(0,1000000), math.random(-1000000,1000000))
                             Library:Notify("Matcha.cc - Waiting.. Target is currently dead.", 1)
                             MainEvent:FireServer("Reload", tool)
                         end
-						RunService:BindToRenderStep("RestoreCFrame", 199, function()
-							localPlayer.Character.HumanoidRootPart.CFrame = SavedPosition
-							RunService:UnbindFromRenderStep("RestoreCFrame")
-						end)
+                        RunService:BindToRenderStep("RestoreCFrame", 199, function()
+                            humanoidRootPart.CFrame = SavedPosition
+                            RunService:UnbindFromRenderStep("RestoreCFrame")
+                        end)
                     end
                 else
-                    localPlayer.Character.HumanoidRootPart.CFrame += Vector3.new(math.random(-1000000,1000000), math.random(0,1000000), math.random(-1000000,1000000))
+                    humanoidRootPart.CFrame += Vector3.new(math.random(-1000000,1000000), math.random(0,1000000), math.random(-1000000,1000000))
                     Library:Notify("Matcha.cc - Waiting.. Equip your gun while using 'Auto Kill Target'.", 1)
-					RunService:BindToRenderStep("RestoreCFrame", 199, function()
-						localPlayer.Character.HumanoidRootPart.CFrame = SavedPosition
-						RunService:UnbindFromRenderStep("RestoreCFrame")
-					end)
+                    RunService:BindToRenderStep("RestoreCFrame", 199, function()
+                        humanoidRootPart.CFrame = SavedPosition
+                        RunService:UnbindFromRenderStep("RestoreCFrame")
+                    end)
                 end
             end
         else
@@ -7575,11 +7586,12 @@ RunService.Heartbeat:Connect(function(dt)
                 humanoidRootPart.CFrame += Vector3.new(math.random(-1000000,1000000), math.random(0,1000000), math.random(-1000000,1000000))
             end
             Library:Notify("Matcha.cc - Target not found from TargetAim (Hide void). Set TargetAim first!", 3)
-            matchacc.TargetAim.AutoKill = false  -- Tự disable nếu không có target
-			RunService:BindToRenderStep("RestoreCFrame", 199, function()
-				localPlayer.Character.HumanoidRootPart.CFrame = SavedPosition
-				RunService:UnbindFromRenderStep("RestoreCFrame")
-			end)
+            -- Không disable nữa để tránh phải bật lại, chỉ notify
+            local SavedPosition = getgenv().lastSavedPosition or humanoidRootPart.CFrame
+            RunService:BindToRenderStep("RestoreCFrame", 199, function()
+                humanoidRootPart.CFrame = SavedPosition
+                RunService:UnbindFromRenderStep("RestoreCFrame")
+            end)
         end
     end
 end)
@@ -8349,6 +8361,282 @@ DesyncGroup:AddToggle('DesyncDot', {
     Default = false,
     Callback = function(Value)
         matchacc.Desync.Dot = Value
+    end
+})
+local selectedPlayer = nil
+local spectateConnection = nil
+
+local function refreshPlayerList(group)
+    -- Giả sử library không hỗ trợ clear, add button mỗi lần refresh, nhưng để tránh duplicate, có thể skip nếu đã có.
+    -- Để đơn giản, add all mỗi lần, nhưng có thể chồng.
+    -- Hoặc clear nếu library hỗ trợ, nhưng theo script, chúng ta add.
+    for _, child in ipairs(group:GetChildren()) do
+        if child:IsA("TextButton") then -- Giả sử, nhưng library custom, skip clear.
+        end
+    end
+    -- Để tốt, chỉ add khi PlayerAdded, remove khi Removing.
+end
+
+local PlayerListGroup = Tabs.Player:AddLeftGroupbox('Playerlist')
+
+local playerButtons = {}
+
+local function addPlayerButton(player)
+    if player ~= plr then
+        local button = PlayerListGroup:AddButton({
+            Text = player.DisplayName .. " (@" .. player.Name .. ")",
+            Func = function()
+                selectedPlayer = player
+                Library:Notify("Selected player: " .. player.DisplayName .. " (@" .. player.Name .. ")")
+            end
+        })
+        playerButtons[player] = button
+    end
+end
+
+for _, player in pairs(game.Players:GetPlayers()) do
+    addPlayerButton(player)
+end
+
+game.Players.PlayerAdded:Connect(addPlayerButton)
+
+game.Players.PlayerRemoving:Connect(function(player)
+    if selectedPlayer == player then
+        selectedPlayer = nil
+    end
+    if playerButtons[player] then
+        playerButtons[player].Text = ''
+        playerButtons[player] = nil
+    end
+end)
+
+local FeatureGroup = Tabs.Player:AddRightGroupbox('Feature')
+
+FeatureGroup:AddButton('Set TargetAim', function()
+    if selectedPlayer then
+        matchacc.TargetAim.Target = selectedPlayer.Name
+        Library:Notify("Target set to " .. selectedPlayer.Name)
+    else
+        Library:Notify("No player selected")
+    end
+end)
+
+FeatureGroup:AddToggle('SpectateToggle', {
+    Text = 'Spectate',
+    Default = false,
+    Callback = function(value)
+        if value then
+            if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("Humanoid") then
+                Camera.CameraSubject = selectedPlayer.Character.Humanoid
+                Library:Notify("Spectating " .. selectedPlayer.DisplayName)
+            else
+                Library:Notify("No character for selected player")
+                Toggles.SpectateToggle.Value = false
+                return
+            end
+            if spectateConnection then spectateConnection:Disconnect() end
+            spectateConnection = selectedPlayer.CharacterAdded:Connect(function(newChar)
+                task.wait(0.5)
+                local humanoid = newChar:FindFirstChild("Humanoid")
+                if humanoid then
+                    Camera.CameraSubject = humanoid
+                end
+            end)
+        else
+            if plr.Character and plr.Character:FindFirstChild("Humanoid") then
+                Camera.CameraSubject = plr.Character.Humanoid
+            end
+            if spectateConnection then
+                spectateConnection:Disconnect()
+                spectateConnection = nil
+            end
+        end
+    end
+})
+
+FeatureGroup:AddButton('Goto', function()
+    if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        plr.Character.HumanoidRootPart.CFrame = selectedPlayer.Character.HumanoidRootPart.CFrame
+        Library:Notify("Teleported to " .. selectedPlayer.DisplayName)
+    else
+        Library:Notify("No player selected or no HRP")
+    end
+end)
+local function bringTarget(targetPlayer)
+    getgenv().character = targetPlayer.Character
+    if not getgenv().character then return end
+  
+    getgenv().humanoid = getgenv().character:FindFirstChild("Humanoid")
+    getgenv().bodyEffects = getgenv().character:FindFirstChild("BodyEffects")
+    if not getgenv().bodyEffects or not getgenv().humanoid then return end
+  
+    getgenv().koValue = getgenv().bodyEffects:FindFirstChild("K.O")
+    if not getgenv().koValue then return end
+    getgenv().localCharacter = LocalPlayer.Character
+    if not getgenv().localCharacter then return end
+    getgenv().humanoidRootPart = getgenv().localCharacter:FindFirstChild("HumanoidRootPart")
+    if not getgenv().humanoidRootPart then return end
+  
+    local SavedPosition = getgenv().humanoidRootPart.CFrame
+    getgenv().isActionRunning = true
+    
+    -- Equip all guns (tools with ammo)
+    local equippedGuns = false
+    for _, item in ipairs(LocalPlayer.Backpack:GetChildren()) do
+        if item:IsA("Tool") and item:FindFirstChild("Ammo") then
+            item.Parent = LocalPlayer.Character
+            equippedGuns = true
+        end
+    end
+    
+    if not equippedGuns then
+        Library:Notify("No guns found!", 5)
+        getgenv().isActionRunning = false
+        return
+    end
+	if getgenv().character:FindFirstChild("GRABBING_CONSTRAINT") then
+		getgenv().isActionRunning = false
+	end
+    
+    task.spawn(function()
+        while not getgenv().koValue.Value and getgenv().isActionRunning do
+            getgenv().targetPosition = getgenv().character:FindFirstChild("HumanoidRootPart") and getgenv().character.HumanoidRootPart.Position or nil
+            if getgenv().targetPosition then
+                getgenv().humanoidRootPart.CFrame = CFrame.new(getgenv().targetPosition + Vector3.new(0, 5, 0))
+            end
+          
+            getgenv().tool = getgenv().localCharacter:FindFirstChildWhichIsA("Tool")
+            if getgenv().tool and getgenv().tool:FindFirstChild("Ammo") then
+                if getgenv().tool.Ammo.Value <= 0 then
+                    MainEvent:FireServer("Reload", getgenv().tool)
+                end
+                MainEvent:FireServer(
+                    "ShootGun",
+                    getgenv().tool:FindFirstChild("Handle"),
+                    getgenv().tool:FindFirstChild("Handle").CFrame.Position,
+                    getgenv().character.Head.Position,
+                    getgenv().character.Head,
+                    Vector3.new(0, 0, -1)
+                )
+            end
+            task.wait()
+        end
+      
+        repeat
+            getgenv().upperTorso = getgenv().character:FindFirstChild("UpperTorso")
+            if getgenv().upperTorso then
+                getgenv().humanoidRootPart.CFrame = CFrame.new(getgenv().upperTorso.Position + Vector3.new(0, 3, 0))
+                game:GetService("RunService").RenderStepped:Wait()
+            end
+          
+            MainEvent:FireServer("Grabbing", false)
+            task.wait(2)
+        until getgenv().character:FindFirstChild("GRABBING_CONSTRAINT") 
+		game:GetService("RunService"):BindToRenderStep("RestoreCFrame", 199, function()
+			getgenv().humanoidRootPart.CFrame = SavedPosition
+			game:GetService("RunService"):UnbindFromRenderStep("RestoreCFrame")
+		end)
+    end)
+end
+
+
+FeatureGroup:AddButton('Bring', function()
+    if selectedPlayer then
+        bringTarget(selectedPlayer)
+        Library:Notify("Bringing " .. selectedPlayer.DisplayName)
+    else
+        Library:Notify("No player selected")
+    end
+end)
+getgenv().animEnabled = false
+getgenv().animTrack = nil
+getgenv().bangConnection = nil
+
+-- Hàm dừng animation và teleport
+local function stopAnimAndTp()
+    if getgenv().animTrack then
+        getgenv().animTrack:Stop()
+        getgenv().animTrack = nil
+    end
+    if getgenv().bangConnection then
+        getgenv().bangConnection:Disconnect()
+        getgenv().bangConnection = nil
+    end
+    getgenv().animEnabled = false
+end
+
+-- Xử lý khi respawn
+plr.CharacterAdded:Connect(function()
+    if getgenv().animEnabled then
+        task.wait(0.5)
+        local target = game.Players:FindFirstChild(getgenv().SelectedTarget)
+        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+            local myChar = plr.Character
+            local myHum = myChar and myChar:FindFirstChildOfClass("Humanoid")
+            local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+            if myHum and myHRP then
+                -- Chọn lại animation theo rig type
+                local anim = Instance.new("Animation")
+                anim.AnimationId = myHum.RigType == Enum.HumanoidRigType.R6 and "rbxassetid://148840371" or "rbxassetid://5918726674"
+                -- Phát lại animation
+                getgenv().animTrack = myHum:LoadAnimation(anim)
+                getgenv().animTrack:Play()
+                getgenv().animTrack:AdjustSpeed(1)
+                -- Teleport liên tục
+                getgenv().bangConnection = RunService.Heartbeat:Connect(function()
+                    if getgenv().animEnabled and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                        myHRP.CFrame = target.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 1)
+                    else
+                        stopAnimAndTp()
+                    end
+                end)
+            end
+        else
+            stopAnimAndTp()
+        end
+    end
+end)
+
+FeatureGroup:AddToggle('BangPlayerToggle', {
+    Text = 'Bang Player',
+    Default = false,
+    Tooltip = 'Toggle Bang Player on selected target',
+    Callback = function(state)
+        getgenv().animEnabled = state
+      
+        if not state then
+            stopAnimAndTp()
+        else
+            local target = game.Players:FindFirstChild(getgenv().SelectedTarget)
+            if not target then
+                getgenv().animEnabled = false
+                Library:Notify("No target selected!", 5)
+                return
+            end
+            local myChar = plr.Character
+            local myHum = myChar and myChar:FindFirstChildOfClass("Humanoid")
+            local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+            if not (myHum and myHRP) then
+                getgenv().animEnabled = false
+                Library:Notify("Character not ready!", 5)
+                return
+            end
+            -- Chọn animation theo rig type
+            local anim = Instance.new("Animation")
+            anim.AnimationId = myHum.RigType == Enum.HumanoidRigType.R6 and "rbxassetid://148840371" or "rbxassetid://5918726674"
+            -- Phát animation
+            getgenv().animTrack = myHum:LoadAnimation(anim)
+            getgenv().animTrack:Play()
+            getgenv().animTrack:AdjustSpeed(1)
+            -- Teleport liên tục
+            getgenv().bangConnection = RunService.Heartbeat:Connect(function()
+                if getgenv().animEnabled and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                    myHRP.CFrame = target.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 1)
+                else
+                    stopAnimAndTp()
+                end
+            end)
+        end
     end
 })
 end)()
