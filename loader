@@ -8036,7 +8036,7 @@ end
 -- Add to matchacc
 matchacc.Desync = {
     Enabled = false,
-    Mode = "Void",
+    Mode = "Custom",
     RandomAmount = 20,
     Visualize = false,
     Line = false,
