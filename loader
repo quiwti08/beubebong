@@ -278,7 +278,6 @@ local Tabs = {
     Visual = Window:AddTab('Visual', 'eye'),
     Character = Window:AddTab('Character', 'user'),
     Misc = Window:AddTab('Misc', 'heart'),
-    Anti = Window:AddTab('Anti Aim', 'shield'),
     ['UI Settings'] = Window:AddTab('UI Settings', 'settings'),
 }
 local previousTargetHealth = {}
