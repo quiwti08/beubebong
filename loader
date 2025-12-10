@@ -4297,8 +4297,7 @@ function aimbot.isAlive(plr): alive
         return plr and plr.Character and plr.Character.Parent ~= nil and plr.Character:FindFirstChild("HumanoidRootPart") and plr.Character:FindFirstChild("Head") and plr.Character:FindFirstChild("Humanoid")
     end
 end
-local LPH_JIT_ULTRA = LPH_JIT_ULTRA or function(...) return ... end
-spawn(LPH_JIT_ULTRA(function()
+spawn(function()
     while task.wait() do
         for i, v in next, players:GetPlayers() do
             if v ~= localPlayer and aimbot.isAlive(v) then
@@ -4429,8 +4428,8 @@ spawn(LPH_JIT_ULTRA(function()
             end
         end
     end
-end))
-players.PlayerAdded:Connect(LPH_JIT_ULTRA(function(player)
+end)
+players.PlayerAdded:Connect(function(player)
     if player == localPlayer then return end
     esp.players[player] = {
         Box = Drawing.new("Square"),
@@ -4476,8 +4475,8 @@ players.PlayerAdded:Connect(LPH_JIT_ULTRA(function(player)
     esp.players[player].HealthText.Font = Drawing.Fonts.Plex
     esp.players[player].HealthText.Color = Color3.fromRGB(255,255,255)
     esp.players[player].HealthText.Transparency = 1
-end))
-players.PlayerRemoving:Connect(LPH_JIT_ULTRA(function(player)
+end)
+players.PlayerRemoving:Connect(function(player)
     if esp.players[player] then
         for _, v in pairs(esp.players[player]) do
             if v.Remove then
@@ -4489,7 +4488,7 @@ players.PlayerRemoving:Connect(LPH_JIT_ULTRA(function(player)
         end
         esp.players[player] = nil
     end
-end))
+end)
 for i, v in next, players:GetPlayers() do
     if v ~= localPlayer then
         esp.players[v] = {
