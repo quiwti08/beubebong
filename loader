@@ -8160,9 +8160,9 @@ NewConnection(RunService.Heartbeat, function()
 	    )
 	    desyncCFrame = CFrame.new(oldCFrame.Position + offset)
 	elseif matchacc.Desync.Mode == "Safe Shoot" then
-	    desyncCFrame = CFrame.new(oldCFrame - Vector3.new(0, 5, 0)) * CFrame.Angles(math.random(0, 360), math.random(0, 360), math.rad(180))
+	    desyncCFrame = CFrame.new(hrp.Position - Vector3.new(0, 5, 0)) * CFrame.Angles(math.random(0, 360), math.random(0, 360), math.rad(180))
 	elseif matchacc.Desync.Mode == "Custom" then
-	    desyncCFrame = CFrame.new(matchacc.Desync.CustomX, matchacc.Desync.CustomY, matchacc.Desync.CustomZ)
+	    desyncCFrame = CFrame.new(hrp.Position - Vector3.new(matchacc.Desync.CustomX, matchacc.Desync.CustomY, matchacc.Desync.CustomZ))
 	end
 
     -- Apply Desync
@@ -8247,8 +8247,7 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 
 -- UI for Desync (add to Tabs.Anti)
-local DesyncGroup = Tabs.Anti:AddLeftGroupbox('Desync')
-
+local DesyncGroup = Tabs.Player:AddRightGroupbox('Desync')
 DesyncGroup:AddToggle('DesyncEnabled', {
     Text = 'Enabled',
     Default = false,
@@ -8336,6 +8335,7 @@ DesyncGroup:AddToggle('DesyncVisualize', {
     Callback = function(Value)
         BodyCloneDesyncHighlight.FillColor = Value
         GlowLight.Color = Value
+        DesyncDot.Color = Value
     end
 })
 
@@ -8365,53 +8365,20 @@ DesyncGroup:AddToggle('DesyncDot', {
 local selectedPlayer = nil
 local spectateConnection = nil
 
-local function refreshPlayerList(group)
-    -- Giả sử library không hỗ trợ clear, add button mỗi lần refresh, nhưng để tránh duplicate, có thể skip nếu đã có.
-    -- Để đơn giản, add all mỗi lần, nhưng có thể chồng.
-    -- Hoặc clear nếu library hỗ trợ, nhưng theo script, chúng ta add.
-    for _, child in ipairs(group:GetChildren()) do
-        if child:IsA("TextButton") then -- Giả sử, nhưng library custom, skip clear.
-        end
-    end
-    -- Để tốt, chỉ add khi PlayerAdded, remove khi Removing.
-end
-
 local PlayerListGroup = Tabs.Player:AddLeftGroupbox('Playerlist')
 
-local playerButtons = {}
-
-local function addPlayerButton(player)
-    if player ~= plr then
-        local button = PlayerListGroup:AddButton({
-            Text = player.DisplayName .. " (@" .. player.Name .. ")",
-            Func = function()
-                selectedPlayer = player
-                Library:Notify("Selected player: " .. player.DisplayName .. " (@" .. player.Name .. ")")
-            end
-        })
-        playerButtons[player] = button
+PlayerListGroup:AddDropdown('AutoKillTarget', {
+    SpecialType = 'Player',
+    ExcludeLocalPlayer = true,
+    Multi = false,
+    Text = 'Target',
+    Searchable = true,
+    Callback = function(Value)
+        selectedPlayer = Value
     end
-end
+})
 
-for _, player in pairs(game.Players:GetPlayers()) do
-    addPlayerButton(player)
-end
-
-game.Players.PlayerAdded:Connect(addPlayerButton)
-
-game.Players.PlayerRemoving:Connect(function(player)
-    if selectedPlayer == player then
-        selectedPlayer = nil
-    end
-    if playerButtons[player] then
-        playerButtons[player].Text = ''
-        playerButtons[player] = nil
-    end
-end)
-
-local FeatureGroup = Tabs.Player:AddRightGroupbox('Feature')
-
-FeatureGroup:AddButton('Set TargetAim', function()
+PlayerListGroup:AddButton('Set TargetAim', function()
     if selectedPlayer then
         matchacc.TargetAim.Target = selectedPlayer.Name
         Library:Notify("Target set to " .. selectedPlayer.Name)
@@ -8420,7 +8387,7 @@ FeatureGroup:AddButton('Set TargetAim', function()
     end
 end)
 
-FeatureGroup:AddToggle('SpectateToggle', {
+PlayerListGroup:AddToggle('SpectateToggle', {
     Text = 'Spectate',
     Default = false,
     Callback = function(value)
@@ -8453,7 +8420,7 @@ FeatureGroup:AddToggle('SpectateToggle', {
     end
 })
 
-FeatureGroup:AddButton('Goto', function()
+PlayerListGroup:AddButton('Goto', function()
     if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
         plr.Character.HumanoidRootPart.CFrame = selectedPlayer.Character.HumanoidRootPart.CFrame
         Library:Notify("Teleported to " .. selectedPlayer.DisplayName)
@@ -8539,7 +8506,7 @@ local function bringTarget(targetPlayer)
 end
 
 
-FeatureGroup:AddButton('Bring', function()
+PlayerListGroup:AddButton('Bring', function()
     if selectedPlayer then
         bringTarget(selectedPlayer)
         Library:Notify("Bringing " .. selectedPlayer.DisplayName)
@@ -8550,7 +8517,6 @@ end)
 getgenv().animEnabled = false
 getgenv().animTrack = nil
 getgenv().bangConnection = nil
-
 -- Hàm dừng animation và teleport
 local function stopAnimAndTp()
     if getgenv().animTrack then
@@ -8563,12 +8529,11 @@ local function stopAnimAndTp()
     end
     getgenv().animEnabled = false
 end
-
 -- Xử lý khi respawn
 plr.CharacterAdded:Connect(function()
     if getgenv().animEnabled then
         task.wait(0.5)
-        local target = game.Players:FindFirstChild(getgenv().SelectedTarget)
+        local target = game.Players:FindFirstChild(selectedPlayer)
         if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
             local myChar = plr.Character
             local myHum = myChar and myChar:FindFirstChildOfClass("Humanoid")
@@ -8579,12 +8544,13 @@ plr.CharacterAdded:Connect(function()
                 anim.AnimationId = myHum.RigType == Enum.HumanoidRigType.R6 and "rbxassetid://148840371" or "rbxassetid://5918726674"
                 -- Phát lại animation
                 getgenv().animTrack = myHum:LoadAnimation(anim)
+                getgenv().animTrack.Looped = true
                 getgenv().animTrack:Play()
-                getgenv().animTrack:AdjustSpeed(1)
+                getgenv().animTrack:AdjustSpeed(10)
                 -- Teleport liên tục
                 getgenv().bangConnection = RunService.Heartbeat:Connect(function()
                     if getgenv().animEnabled and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-                        myHRP.CFrame = target.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 1)
+                        myHRP.CFrame = target.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -0.9)
                     else
                         stopAnimAndTp()
                     end
@@ -8595,21 +8561,20 @@ plr.CharacterAdded:Connect(function()
         end
     end
 end)
-
-FeatureGroup:AddToggle('BangPlayerToggle', {
+PlayerListGroup:AddToggle('BangPlayerToggle', {
     Text = 'Bang Player',
     Default = false,
     Tooltip = 'Toggle Bang Player on selected target',
     Callback = function(state)
         getgenv().animEnabled = state
-      
+     
         if not state then
             stopAnimAndTp()
         else
-            local target = game.Players:FindFirstChild(getgenv().SelectedTarget)
-            if not target then
+            local target = game.Players:FindFirstChild(selectedPlayer)
+            if not target or not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then
                 getgenv().animEnabled = false
-                Library:Notify("No target selected!", 5)
+                Library:Notify("Invalid target!", 5)
                 return
             end
             local myChar = plr.Character
@@ -8625,8 +8590,9 @@ FeatureGroup:AddToggle('BangPlayerToggle', {
             anim.AnimationId = myHum.RigType == Enum.HumanoidRigType.R6 and "rbxassetid://148840371" or "rbxassetid://5918726674"
             -- Phát animation
             getgenv().animTrack = myHum:LoadAnimation(anim)
+            getgenv().animTrack.Looped = true
             getgenv().animTrack:Play()
-            getgenv().animTrack:AdjustSpeed(1)
+            getgenv().animTrack:AdjustSpeed(10)
             -- Teleport liên tục
             getgenv().bangConnection = RunService.Heartbeat:Connect(function()
                 if getgenv().animEnabled and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
