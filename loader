@@ -8604,7 +8604,7 @@ do
 end 
 local lastStompTime = 0
 local STOMP_COOLDOWN = 2
-local STOMP_EFFECT = "Spirit"
+local STOMP_EFFECT = "Thanos"
 do 
     local function boobs(targetCharacter)
         -- all of these came from dh modded (the idea and assets)
