@@ -7125,52 +7125,50 @@ RunService.Heartbeat:Connect(function(dt)
     local TargetPlayer = players:FindFirstChild(matchacc.TargetAim.Target)
     if matchacc.KillAura.Enabled then
         if Tool and Tool:FindFirstChild("Handle") then
-            if localPlayer.Character.BodyEffects:FindFirstChild("K.O") and not localPlayer.Character.BodyEffects["K.O"].Value then
-                local closest = math.huge
-                local ka_target = nil
-                for _, player in pairs(players:GetPlayers()) do
-                    if player ~= localPlayer and not matchacc.KillAura.Whitelist[player.Name] and player.Character and player.Character:FindFirstChild("Head") and not player.Character:FindFirstChild("GRABBING_CONSTRAINT") then
-                        if player.Character.BodyEffects:FindFirstChild("K.O") and not player.Character.BodyEffects["K.O"].Value then
-                            local dist = (hrp.Position - player.Character.Head.Position).Magnitude
-                            if dist < closest and dist <= matchacc.KillAura.Range then
-                                closest = dist
-                                ka_target = player
-                            end
-                        end
-                    end
-                end
-                if ka_target and ka_target.Character and ka_target.Character:FindFirstChild("Head") then
-                    hrp.CFrame = CFrame.lookAt(hrp.Position, ka_target.Character.Head.Position)
-                    if matchacc.KillAura.Visualize then
-                        ka_tracer.Transparency = 0
-                        ka_tracer.Size = Vector3.new(0.2, 0.2, (hrp.Position - ka_target.Character.Head.Position).Magnitude)
-                        ka_tracer.CFrame = CFrame.lookAt(hrp.Position, ka_target.Character.Head.Position) * CFrame.new(0, 0, -ka_tracer.Size.Z / 2)
-                    else
-                        ka_tracer.Transparency = 1
-                    end
-                    local humanoid = ka_target.Character:FindFirstChild("Humanoid")
-                    if humanoid then
-                        if not ka_lastHealth[ka_target.Name] then
-                            ka_lastHealth[ka_target.Name] = humanoid.Health
-                        end
-                        if humanoid.Health < ka_lastHealth[ka_target.Name] then
-                            createHitSound()
-                        end
-                        ka_lastHealth[ka_target.Name] = humanoid.Health
-                    end
-                    local offset = matchacc.KillAura.Silent and Vector3.new(0, -12, 0) or Vector3.new(0, 0, 0)
-                    MainEvent:FireServer(
-                        "ShootGun",
-                        Tool:FindFirstChild("Handle"),
-                        Tool:FindFirstChild("Handle").CFrame.Position + offset,
-                        ka_target.Character.Head.Position + offset,
-                        ka_target.Character.Head,
-                        Vector3.new(0, 0, -1)
-                    )
-                else
-                    ka_tracer.Transparency = 1
-                end
-            end
+			local closest = math.huge
+			local ka_target = nil
+			for _, player in pairs(players:GetPlayers()) do
+				if player ~= localPlayer and not matchacc.KillAura.Whitelist[player.Name] and player.Character and player.Character:FindFirstChild("Head") and not player.Character:FindFirstChild("GRABBING_CONSTRAINT") then
+					if player.Character.BodyEffects:FindFirstChild("K.O") and not player.Character.BodyEffects["K.O"].Value then
+						local dist = (hrp.Position - player.Character.Head.Position).Magnitude
+						if dist < closest and dist <= matchacc.KillAura.Range then
+							closest = dist
+							ka_target = player
+						end
+					end
+				end
+			end
+			if ka_target and ka_target.Character and ka_target.Character:FindFirstChild("Head") then
+				hrp.CFrame = CFrame.lookAt(hrp.Position, ka_target.Character.Head.Position)
+				if matchacc.KillAura.Visualize then
+					ka_tracer.Transparency = 0
+					ka_tracer.Size = Vector3.new(0.2, 0.2, (hrp.Position - ka_target.Character.Head.Position).Magnitude)
+					ka_tracer.CFrame = CFrame.lookAt(hrp.Position, ka_target.Character.Head.Position) * CFrame.new(0, 0, -ka_tracer.Size.Z / 2)
+				else
+					ka_tracer.Transparency = 1
+				end
+				local humanoid = ka_target.Character:FindFirstChild("Humanoid")
+				if humanoid then
+					if not ka_lastHealth[ka_target.Name] then
+						ka_lastHealth[ka_target.Name] = humanoid.Health
+					end
+					if humanoid.Health < ka_lastHealth[ka_target.Name] then
+						createHitSound()
+					end
+					ka_lastHealth[ka_target.Name] = humanoid.Health
+				end
+				local offset = matchacc.KillAura.Silent and Vector3.new(0, -12, 0) or Vector3.new(0, 0, 0)
+				MainEvent:FireServer(
+					"ShootGun",
+					Tool:FindFirstChild("Handle"),
+					Tool:FindFirstChild("Handle").CFrame.Position + offset,
+					ka_target.Character.Head.Position + offset,
+					ka_target.Character.Head,
+					Vector3.new(0, 0, -1)
+				)
+			else
+				ka_tracer.Transparency = 1
+			end
         else
             ka_tracer.Transparency = 1
         end
@@ -7335,7 +7333,7 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
     if matchacc.TargetAim.Enabled and matchacc.TargetAim.Strafe and matchacc.TargetAim.Target ~= "None" and localPlayer and localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") and localPlayer.Character:FindFirstChild("Humanoid") and localPlayer.Character:FindFirstChild("Head") then
         local TargetPlayer = players:FindFirstChild(matchacc.TargetAim.Target)
         local Tool = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Tool")
-        if TargetPlayer and TargetPlayer.Character and TargetPlayer.Character:FindFirstChild("Head") and Tool then
+        if TargetPlayer and TargetPlayer.Character and TargetPlayer.Character:FindFirstChild("Head") then
             if not TargetPlayer.Character:FindFirstChild("ForceField") or Tool.Name == "[Rifle]" then
                 local bodyEffects = TargetPlayer.Character:FindFirstChild("BodyEffects")
                 local isDead = bodyEffects and bodyEffects:FindFirstChild("Dead") and bodyEffects.Dead.Value
@@ -7370,23 +7368,21 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
                 -- Mua ammo 3 lần khi hết đạn
                 local AmmoName = "[" .. headshots.AutoLoadout.Gun:sub(2, -2) .. " Ammo]"
                 if ShopTable[AmmoName] then
-                    for i = 1, 3 do
-                        local shop = game.Workspace.Ignored.Shop:FindFirstChild(ShopTable[AmmoName].ShopName)
-                        if shop and shop:FindFirstChild("Head") then
-                            local hrp = char.HumanoidRootPart
-                            local SavedPosition = hrp.CFrame
-                            hrp.CFrame = shop.Head.CFrame
-			                local currentTool = char:FindFirstChildOfClass("Tool")
-			                if currentTool then
-			                    currentTool.Parent = plr.Backpack
-			                end
-                            fireclickdetector(shop:FindFirstChildOfClass("ClickDetector"))
-                            game:GetService("RunService"):BindToRenderStep("RestoreCFrame", 199, function()
-                                hrp.CFrame = SavedPosition
-                                game:GetService("RunService"):UnbindFromRenderStep("RestoreCFrame")
-                            end)
-                        end
-                    end
+					local shop = game.Workspace.Ignored.Shop:FindFirstChild(ShopTable[AmmoName].ShopName)
+					if shop and shop:FindFirstChild("Head") then
+						local hrp = char.HumanoidRootPart
+						local SavedPosition = hrp.CFrame
+						hrp.CFrame = shop.Head.CFrame
+						local currentTool = char:FindFirstChildOfClass("Tool")
+						if currentTool then
+							currentTool.Parent = plr.Backpack
+						end
+						fireclickdetector(shop:FindFirstChildOfClass("ClickDetector"))
+						game:GetService("RunService"):BindToRenderStep("RestoreCFrame", 199, function()
+							hrp.CFrame = SavedPosition
+							game:GetService("RunService"):UnbindFromRenderStep("RestoreCFrame")
+						end)
+					end
                 end
             end
         end
@@ -7502,7 +7498,6 @@ RunService.Heartbeat:Connect(function(dt)
         if getgenv().lastTarget ~= targetName then
             -- Force restore vị trí khi target thay đổi để tránh stuck từ target cũ
             if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                local SavedPosition = getgenv().lastSavedPosition or localPlayer.Character.HumanoidRootPart.CFrame
                 RunService:BindToRenderStep("RestoreCFrame", 199, function()
                     localPlayer.Character.HumanoidRootPart.CFrame = SavedPosition
                     RunService:UnbindFromRenderStep("RestoreCFrame")
@@ -7519,9 +7514,8 @@ RunService.Heartbeat:Connect(function(dt)
                 local toolHandle = tool and tool:FindFirstChild("Handle")
                 local targetHRP = Target.Character:FindFirstChild("HumanoidRootPart")
                 local targetHead = Target.Character:FindFirstChild("Head")
+                local SavedPosition = localPlayer.Character.HumanoidRootPart.CFrame
                 if humanoidRootPart and head and toolHandle and targetHRP and targetHead then
-                    local SavedPosition = humanoidRootPart.CFrame -- Lưu vị trí trước mỗi hành động để cập nhật động
-                    getgenv().lastSavedPosition = SavedPosition
                     if not KnockCheck(Target) then
                         if not Target.Character:FindFirstChild("ForceField") then
                             humanoidRootPart.CFrame = CFrame.lookAt(Target.Character.Head.Position + Vector3.new(math.random(-15,15), math.random(-15,15), math.random(-15,15)), Target.Character.Head.Position)
@@ -7558,6 +7552,16 @@ RunService.Heartbeat:Connect(function(dt)
                         end)
                     end
                 else
+					equipAllGuns()  -- Gọi hàm equipAllGuns để cầm tất cả tool
+					Library:Notify("Matcha.cc - Auto equipping all guns with ammo.", 1)
+                    
+                    -- Sau khi equip, reload những tool ammo <= 0
+                    for _, equippedTool in ipairs(localPlayer.Character:GetChildren()) do
+                        if equippedTool:IsA("Tool") and equippedTool:FindFirstChild("Ammo") and equippedTool.Ammo.Value <= 0 then
+                            MainEvent:FireServer("Reload", equippedTool)
+                            Library:Notify("Matcha.cc - Reloading " .. equippedTool.Name, 1)
+                        end
+                    end
                     humanoidRootPart.CFrame += Vector3.new(math.random(-1000000,1000000), math.random(0,1000000), math.random(-1000000,1000000))
                     Library:Notify("Matcha.cc - Waiting.. Equip your gun while using 'Auto Kill Target'.", 1)
                     RunService:BindToRenderStep("RestoreCFrame", 199, function()
@@ -7566,19 +7570,6 @@ RunService.Heartbeat:Connect(function(dt)
                     end)
                 end
             end
-        else
-            -- If no target is found from TargetAim
-            local humanoidRootPart = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if humanoidRootPart then
-                humanoidRootPart.CFrame += Vector3.new(math.random(-1000000,1000000), math.random(0,1000000), math.random(-1000000,1000000))
-            end
-            Library:Notify("Matcha.cc - Target not found from TargetAim (Hide void). Set TargetAim first!", 3)
-            -- Không disable nữa để tránh phải bật lại, chỉ notify
-            local SavedPosition = getgenv().lastSavedPosition or humanoidRootPart.CFrame
-            RunService:BindToRenderStep("RestoreCFrame", 199, function()
-                humanoidRootPart.CFrame = SavedPosition
-                RunService:UnbindFromRenderStep("RestoreCFrame")
-            end)
         end
     end
 end)
