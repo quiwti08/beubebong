@@ -284,6 +284,7 @@ local Tabs = {
 local previousTargetHealth = {}
 local TargetAimActive = false
 local BuyingActive = false
+local AutokillActive = false
 local AutoArmorActive = false
 local AutoLoadoutActive = false
 local BuyingSingleActive = false
@@ -3578,8 +3579,184 @@ ChinaHatGroup:AddSlider('ChinaHatScaleZ', {
         end
     end
 })
+local MatchaEsp = loadstring(game:HttpGet('https://raw.githubusercontent.com/quiwti08/beubebong/refs/heads/main/esplib'))()
+local esp = MatchaEsp.new()
 local ESPGroup = Tabs.Visual:AddLeftGroupbox('ESP')
+ESPGroup:AddToggle('BoxESPToggle', {
+    Text = 'Box ESP',
+    Default = false,
+    Callback = function(Value)
+        if Value then
+            esp:InitiateBox(Color3.new(0.403922, 0.349020, 0.701961))
+        else
+            esp.State.BoxEnabled = false
+        end
+    end,
+}):AddColorPicker('BoxColorPicker', {
+    Default = Color3.new(0.403922, 0.349020, 0.701961),
+    Callback = function(Value)
+        esp.Config.BoxColor = Value
+        for _, espObj in pairs(esp.Caches.BoxCache) do
+            espObj.Box.Color = Value
+        end
+    end,
+})
 
+-- Name ESP
+ESPGroup:AddToggle('NameESPToggle', {
+    Text = 'Name ESP',
+    Default = false,
+    Callback = function(Value)
+        esp:InitiateName(Value)
+    end,
+})
+
+-- Distance ESP
+ESPGroup:AddToggle('DistanceESPToggle', {
+    Text = 'Distance ESP',
+    Default = false,
+    Callback = function(Value)
+        esp:InitiateDistance(Value)
+    end,
+})
+
+-- Skeleton ESP
+ESPGroup:AddToggle('SkeletonESPToggle', {
+    Text = 'Skeleton ESP',
+    Default = false,
+    Callback = function(Value)
+        if Value then
+            esp:InitiateSkeleton(Color3.new(0.403922, 0.349020, 0.701961))
+        else
+            esp.State.SkeletonEnabled = false
+        end
+    end,
+})
+
+ESPGroup:AddLabel('Skeleton Color'):AddColorPicker('SkeletonColorPicker', {
+    Default = Color3.new(0.403922, 0.349020, 0.701961),
+    Callback = function(Value)
+        esp.Config.SkeletonColor = Value
+        for _, skeleton in pairs(esp.Caches.SkeletonCache) do
+            for _, line in pairs(skeleton) do
+                line.Color = Value
+            end
+        end
+    end,
+})
+
+-- Health Text ESP
+ESPGroup:AddToggle('HealthTextESPToggle', {
+    Text = 'Health Text ESP',
+    Default = false,
+    Callback = function(Value)
+        esp:InitiateHealthText(Value)
+    end,
+})
+
+-- Health Bar ESP
+ESPGroup:AddToggle('HealthBarESPToggle', {
+    Text = 'Health Bar ESP',
+    Default = false,
+    Callback = function(Value)
+        esp:InitiateHealthBar(Value)
+    end,
+})
+
+-- Tracer ESP
+ESPGroup:AddToggle('TracerESPToggle', {
+    Text = 'Tracer ESP',
+    Default = false,
+    Callback = function(Value)
+        if Value then
+            esp:InitiateTracer(Color3.new(0.403922, 0.349020, 0.701961), esp.Config.TracerOrigin)
+        else
+            esp.State.TracerEnabled = false
+        end
+    end,
+}):AddColorPicker('TracerColorPicker', {
+    Default = Color3.new(0.403922, 0.349020, 0.701961),
+    Callback = function(Value)
+        esp.Config.TracerColor = Value
+        for _, tracer in pairs(esp.Caches.TracerCache) do
+            tracer.Color = Value
+        end
+    end,
+})
+
+ESPGroup:AddDropdown('TracerOriginDropdown', {
+    Text = 'Tracer Origin',
+    Default = 'Bottom Screen',
+    Values = {'Bottom Screen', 'Cursor', 'Top Screen'},
+    Callback = function(Value)
+        esp.Config.TracerOrigin = Value
+    end,
+})
+
+-- Chams
+ESPGroup:AddToggle('ChamsToggle', {
+    Text = 'Chams',
+    Default = false,
+    Callback = function(Value)
+        if Value then
+            esp:InitiateChams(Color3.new(1, 0, 0))
+        else
+            esp.State.ChamsEnabled = false
+        end
+    end,
+}):AddColorPicker('ChamsColorPicker', {
+    Default = Color3.new(0.403922, 0.34902, 0.701961),
+    Callback = function(Value)
+        esp.Config.ChamsColor = Value
+        for _, chams in pairs(esp.Caches.ChamsCache) do
+            chams.FillColor = Value
+        end
+    end,
+}):AddColorPicker('ChamsOutlineColorPicker', {
+    Default = Color3.new(1, 1, 1),
+    Callback = function(Value)
+        esp.Config.ChamsOutlineColor = Value
+        for _, chams in pairs(esp.Caches.ChamsCache) do
+            chams.OutlineColor = Value
+        end
+    end,
+})
+ESPGroup:AddSlider('ChamFillTransparency', {
+    Text = 'Chams Fill Transparency',
+    Default = 0.5,
+    Min = 0,
+    Max = 1,
+    Rounding = 1,
+    Suffix = '',
+    Callback = function(Value)
+        esp.Config.ChamsFillTransparency = Value
+        for _, chams in pairs(esp.Caches.ChamsCache) do
+            chams.ChamsFillTransparency = Value
+        end
+    end,
+})
+-- Team Check
+ESPGroup:AddToggle('TeamCheckToggle', {
+    Text = 'Team Check',
+    Default = true,
+    Callback = function(Value)
+        esp:TeamCheck(Value)
+    end,
+})
+
+-- ESP Distance
+ESPGroup:AddSlider('ESPDistanceSlider', {
+    Text = 'ESP Distance',
+    Default = 325,
+    Min = 100,
+    Max = 1000,
+    Rounding = 0,
+    Suffix = ' studs',
+    Callback = function(Value)
+        esp:SetDistance(Value)
+    end,
+})
+esp:Initialize()
 coroutine.wrap(function()
 
 -- Màu chung cho tất cả aura
@@ -5984,6 +6161,7 @@ RunService.Heartbeat:Connect(function(dt)
     AutoLoadoutActive = false
     BuyingSingleActive = false
     BuyingAmmoActive = false
+    AutokillActive = false
 
     local hrp = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
     local Tool = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Tool")
@@ -7111,7 +7289,7 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- UI for Desync (add to Tabs.Anti)
+local LeftGroupBox = Tabs.Player:AddRightGroupbox('Teleports')
 local DesyncGroup = Tabs.Player:AddRightGroupbox('Desync')
 DesyncGroup:AddToggle('DesyncEnabled', {
     Text = 'Enabled',
@@ -7226,6 +7404,142 @@ DesyncGroup:AddToggle('DesyncDot', {
     Callback = function(Value)
         matchacc.Desync.Dot = Value
     end
+})
+
+MyButton = LeftGroupBox:AddButton({
+	Text = "Bank",
+	Func = function()
+		teleportCFrame = CFrame.new(- 442, 39, - 284)
+		game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(teleportCFrame)
+	end,
+	DoubleClick = false,
+	Tooltip = "Teleports you to the Bank"
+})
+MyButton = LeftGroupBox:AddButton({
+	Text = "Inside Bank",
+	Func = function()
+		teleportCFrame = CFrame.new(- 443, 23, - 284)
+		game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(teleportCFrame)
+	end,
+	DoubleClick = false,
+	Tooltip = "Teleports you to the Bank"
+})
+MyButton = LeftGroupBox:AddButton({
+	Text = "Vault",
+	Func = function()
+		teleportCFrame = CFrame.new(- 658, - 30, - 285)
+		game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(teleportCFrame)
+	end,
+	DoubleClick = false,
+	Tooltip = "Teleports you to the Bank"
+})
+MyButton = LeftGroupBox:AddButton({
+	Text = "Mid Appartment Building",
+	Func = function()
+		teleportCFrame = CFrame.new(- 323, 80, - 299)
+		game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(teleportCFrame)
+	end,
+	DoubleClick = false,
+	Tooltip = "Teleports you to the Bank"
+})
+MyButton = LeftGroupBox:AddButton({
+	Text = "Revolver",
+	Func = function()
+		teleportCFrame = CFrame.new(- 634, 21, - 132)
+		game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(teleportCFrame)
+	end,
+	DoubleClick = false,
+	Tooltip = "Teleports you to the Bank"
+})
+MyButton = LeftGroupBox:AddButton({
+	Text = "LMG",
+	Func = function()
+		teleportCFrame = CFrame.new(- 626, 23, - 295)
+		game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(teleportCFrame)
+	end,
+	DoubleClick = false,
+	Tooltip = "Teleports you to the Bank"
+})
+MyButton = LeftGroupBox:AddButton({
+	Text = "Swimming Pool",
+	Func = function()
+		teleportCFrame = CFrame.new(- 847, 21, - 279)
+		game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(teleportCFrame)
+	end,
+	DoubleClick = false,
+	Tooltip = "Teleports you to the Bank"
+})
+MyButton = LeftGroupBox:AddButton({
+	Text = "Broken Fire Station",
+	Func = function()
+		teleportCFrame = CFrame.new(- 1182, 28, - 521)
+		game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(teleportCFrame)
+	end,
+	DoubleClick = false,
+	Tooltip = "Teleports you to the Bank"
+})
+MyButton = LeftGroupBox:AddButton({
+	Text = "DownHill",
+	Func = function()
+		teleportCFrame = CFrame.new(- 559, 8, - 735)
+		game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(teleportCFrame)
+	end,
+	DoubleClick = false,
+	Tooltip = "Teleports you to the Bank"
+})
+MyButton = LeftGroupBox:AddButton({
+	Text = "Military Base",
+	Func = function()
+		teleportCFrame = CFrame.new(- 40, 65, - 926)
+		game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(teleportCFrame)
+	end,
+	DoubleClick = false,
+	Tooltip = "Teleports you to the Bank"
+})
+MyButton = LeftGroupBox:AddButton({
+	Text = "Uphill",
+	Func = function()
+		teleportCFrame = CFrame.new(481, 48, - 602)
+		game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(teleportCFrame)
+	end,
+	DoubleClick = false,
+	Tooltip = "Teleports you to the Bank"
+})
+MyButton = LeftGroupBox:AddButton({
+	Text = "Breaking Bad",
+	Func = function()
+		teleportCFrame = CFrame.new(598, 28, - 214)
+		game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(teleportCFrame)
+	end,
+	DoubleClick = false,
+	Tooltip = "Teleports you to the Bank"
+})
+MyButton = LeftGroupBox:AddButton({
+	Text = "Church",
+	Func = function()
+		teleportCFrame = CFrame.new(205, 21, - 124)
+		game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(teleportCFrame)
+	end,
+	DoubleClick = false,
+	Tooltip = "Teleports you to the Bank"
+})
+MyButton = LeftGroupBox:AddButton({
+	Text = "Police Station",
+	Func = function()
+		teleportCFrame = CFrame.new(- 264, 21, - 93)
+		game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(teleportCFrame)
+	end,
+	DoubleClick = false,
+	Tooltip = "Teleports you to the Bank"
+})
+MyButton = LeftGroupBox:AddButton({
+	Text = "School",
+	Func = function()
+		teleportCFrame = CFrame.new(- 594, 21, 173)
+		game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(teleportCFrame)
+	end,
+	DoubleClick = false,
+	Tooltip = "Teleports you to the Bank"
 })
 local selectedPlayer = nil
 local spectateConnection = nil
@@ -7350,7 +7664,6 @@ local function bringTarget(targetPlayer)
                     Vector3.new(0, 0, -1)
                 )
             end
-            task.wait()
         end
       
         repeat
@@ -7377,6 +7690,9 @@ PlayerListGroup:AddButton('Bring', function()
         Library:Notify("Bringing " .. selectedPlayer.DisplayName)
     else
         Library:Notify("No player selected")
+    end
+    if getgenv().isActionRunning then
+        getgenv().isActionRunning = false
     end
 end)
 getgenv().animEnabled = false
@@ -9099,167 +9415,6 @@ do
         Max = 20,
         Rounding = 1,
     })
-    TrollingBox:AddToggle("Effects",{
-        Text = "Effects",
-        Default = true,
-        Callback = function(state)
-            States.Effects = state
-        end 
-    })
-    Modules:GrabTool({
-        Name = "Get Over Here",
-        StopAnimations = true,
-        Description = "Mortal combat get over here",
-        Callback = function(Grabbed,Character)
-            DhLibrary:PlayAudio(8643750815)
-            task.wait(1.6)
-            DhLibrary:StopAudio()
-            DhLibrary:PlayAudio(7592607446)
-            DhLibrary:PlayAnimation(Character,16768625968)
-            if States.Effects then 
-                Chain.Attachment0 = DhLibrary:Create("Attachment",{
-                    Parent = Grabbed:FindFirstChild("UpperTorso"),
-                })
-                Chain.Attachment1 = DhLibrary:Create("Attachment",{
-                    Parent = Character:FindFirstChild("RightHand"),
-                })
-            end
-            task.wait(1.1)
-            
-            DhLibrary:Tween(
-                Grabbed.UpperTorso:FindFirstChild("BodyPosition"),
-                0.6,
-                { Position = Character.HumanoidRootPart.Position }
-            )
-         
-            task.wait(0.6)
-            Chain.Attachment0 = nil
-            Chain.Attachment1 = nil 
-            DhLibrary:StopAudio()
-            States.Grab = true 
-        end, 
-    })
-
-    Modules:GrabTool({
-        Name = "Made In Heaven",
-        StopAnimation = true,
-        Description = "",
-        Callback = function(Grabbed,Character)
-            local OldFov,OldFog,OldFogColor = Camera.FieldOfView,LightingService.FogEnd,LightingService.FogColor
-            
-            DhLibrary:PlayAudio(8004825017)
-            DhLibrary:Chat("Made In Heaven...")
-    
-            Character:FindFirstChild("HumanoidRootPart").CFrame = Grabbed:FindFirstChild("HumanoidRootPart").CFrame * CFrame.new(1,0,3)
-            DhLibrary:PlayAnimation(Character,11394033602)
-    
-            if States.Effects then 
-                DhLibrary:Tween(Camera,1,{ FieldOfView = 120 })
-                DhLibrary:Tween(LightingService,1, { FogEnd = 20 })
-                DhLibrary:Tween(LightingService,1, { FogColor = Color3.fromRGB(255,255,255) })
-            end 
-            DhLibrary:Tween(Character:FindFirstChild("Humanoid"), 1,{ HipHeight = 3.6 })
-            task.wait(1)
-    
-            DhLibrary:Chat("Heaven has arrived..")
-            DhLibrary:Tween(Grabbed:FindFirstChild("UpperTorso").BodyPosition,0.5,{ Position = Modules:GetForwardPosition(10) + Vector3.new(0,10,0) })
-            task.wait(7)
-            DhLibrary:Void(Grabbed)
-            task.wait(0.6)
-            DhLibrary:StopAudio()
-
-            DhLibrary:StopAnimation(Character,11394033602)
-            States.Grab = true
-    
-            DhLibrary:Tween(Camera,1,{ FieldOfView = OldFov })
-            DhLibrary:Tween(LightingService,1, { FogEnd = OldFog })
-            DhLibrary:Tween(LightingService,1, { FogColor = OldFogColor })
-    
-            DhLibrary:Tween(Character:FindFirstChild("Humanoid"), 1,{ HipHeight = 2 })
-        end,
-    })
-
-    Modules:GrabTool({
-        Name = "Orbit",
-        Description = "Orbits the players parts around you",
-        StopAnimations = true,
-        Callback = function(Grabbed,Character)
-            local currentTime: number = 0;
-            local Character: Model = Modules:GetChar()
-
-            DhLibrary:AddConnection("Orbit",RunService.Heartbeat:Connect(function(delta)
-                if Character.BodyEffects.Grabbed.Value == nil or not Tools["Orbit"]["State"] then 
-                    States.Grab = true 
-                    DhLibrary:RemoveConnection("Orbit")
-                    return 
-                end 
-                currentTime = currentTime + delta
-                Grabbed.UpperTorso.CFrame      = CFrame.Angles(math.pi * 0.1, 1.5 * math.pi * currentTime, 0)* CFrame.new(1, 2, 5) + Character.HumanoidRootPart.Position
-                Grabbed.LowerTorso.CFrame      = CFrame.Angles(math.pi * -0.1, 1.5 * math.pi * -currentTime, 0)* CFrame.new(1, 2, 5) + Character.HumanoidRootPart.Position
-                Grabbed.LeftUpperArm.CFrame    = CFrame.Angles(math.pi * .25, 3 * math.pi * currentTime, 0)* CFrame.new(1, 2, 5) + Character.HumanoidRootPart.Position
-                Grabbed.RightUpperArm.CFrame   = CFrame.Angles(math.pi * -.25, 3 * math.pi * -currentTime, 0)* CFrame.new(1, 2, 5) + Character.HumanoidRootPart.Position
-                Grabbed.LeftUpperLeg.CFrame    = CFrame.Angles(math.pi * .3, 2.5 * math.pi * currentTime, 0)* CFrame.new(1, 2, 5) + Character.HumanoidRootPart.Position
-                Grabbed.RightUpperLeg.CFrame   = CFrame.Angles(math.pi * -.3, 2.5 * math.pi * -currentTime, 0)* CFrame.new(1, 0, 5) + Character.HumanoidRootPart.Position
-                Grabbed.LeftLowerLeg.CFrame    = CFrame.Angles(math.pi * .7, 2 * math.pi * currentTime, 0)* CFrame.new(1, 2, 7) + Character.HumanoidRootPart.Position
-                Grabbed.RightLowerLeg.CFrame   = CFrame.Angles(math.pi * .8, 2 * math.pi * -currentTime, 0)* CFrame.new(1, 2, 7) + Character.HumanoidRootPart.Position
-                Grabbed.LeftLowerArm.CFrame    = CFrame.Angles(math.pi * .9, 2 * math.pi * currentTime, 0)* CFrame.new(1, 2, 7) + Character.HumanoidRootPart.Position
-                Grabbed.RightLowerArm.CFrame   = CFrame.Angles(math.pi * 1, 2 * math.pi * -currentTime, 0)* CFrame.new(1, 2, 7) + Character.HumanoidRootPart.Position
-            end))
-        end
-    })
-
-    Modules:GrabTool({
-        Name = "Make Player Stand",
-        Description = "Turns the player into your 'stand'",
-        StopAnimations = true,
-        Callback = function(Grabbed,Character)
-            local ClonedChar: Model = Modules:CloneChar(Grabbed)
-            local Cross: boolean = false 
-            Modules:Delete(Grabbed, {  "BodyGyro", "BodyPosition" })
-
-            DhLibrary:AddConnection("Make Player Stand",RunService.Heartbeat:Connect(function()
-                if Character.BodyEffects and Character.BodyEffects.Grabbed.Value == nil or not Tools["Make Player Stand"]["State"] then 
-                    States.Grab = true 
-                    ClonedChar:Destroy()
-                    DhLibrary:RemoveConnection("Make Player Stand")
-                end 
-
-                DhLibrary:NoVelocity(ClonedChar)
-                DhLibrary:NoVelocity(Grabbed)
-                DhLibrary:CanCollide(Grabbed,false)
-
-                local BodyGyro = ClonedChar:FindFirstChild("UpperTorso") and ClonedChar.UpperTorso:FindFirstChild("BodyGyro") or DhLibrary:Create("BodyGyro",{
-                    Parent = ClonedChar:FindFirstChild("UpperTorso") ,
-                    D = 100,
-                })
-
-                for _, _____GYAT in pairs(Grabbed:GetChildren()) do 
-                    if _____GYAT:IsA("BasePart") and ClonedChar:FindFirstChild(_____GYAT.Name) then 
-                        if _____GYAT.Name == "UpperTorso" then 
-                            _____GYAT.CFrame = _____GYAT.CFrame * CFrame.Angles(math.rad(140),0,0)
-                        end 
-                        Modules:AlignControl(_____GYAT,ClonedChar:FindFirstChild(_____GYAT.Name),CFrame.new(0,0,0))
-                    
-                    end 
-                end 
-
-
-                BodyGyro.CFrame = CFrame.lookAt(ClonedChar.UpperTorso.Position, Character.HumanoidRootPart.Position)
-                BodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-
-                DhLibrary:Tween(ClonedChar.HumanoidRootPart, 0.4, {
-                    CFrame = CFrame.new(
-                        Character.HumanoidRootPart.Position + 
-                        Character.HumanoidRootPart.CFrame.LookVector * -3 +
-                        Character.HumanoidRootPart.CFrame.RightVector * -1 +
-                        Vector3.new(0, 4.2, 0)
-                    )
-                })
-            end))
-
-            DhLibrary:PlayAnimation(ClonedChar,3541114300)
-        end 
-    })
 end 
 Modules:InitGrab()
 do
@@ -10144,6 +10299,7 @@ MiscBox:AddToggle('AntiGrab', {
         end
     end
 })
+if isDaHood then
 getgenv().XZQW_ENABLED = false
 getgenv().HIDE_ANIMATIONS = false
 getgenv().YRWL_Connection___ = {}
@@ -10249,7 +10405,6 @@ Depbox:AddToggle('HideAnimations', {
 Depbox:SetupDependencies({
     { Toggles.AutoBlock, true }
 })
-if isDaHood then
     getgenv().CASH_AURA_ENABLED = false
     getgenv().CASH_AURA_RANGE = 17
     getgenv().COOLDOWN = 0.2
@@ -10304,7 +10459,6 @@ if isDaHood then
 end
 
 local autoReloadEnabled = false
-local silentReloadEnabled = false
 local removeShootAnimEnabled = false
 
 RunService.Heartbeat:Connect(function()
