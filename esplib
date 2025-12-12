@@ -1,0 +1,854 @@
+local playersService = game:GetService("Players")
+local workspaceService = game:GetService("Workspace")
+local runService = game:GetService("RunService")
+local userInputService = game:GetService("UserInputService")
+local espModule = {}
+espModule.__index = espModule
+espModule.Config = {
+    TeamCheck = true,
+    ESPDistance = 325,
+    BoxColor = Color3.new(0.403922, 0.34902, 0.701961),
+    SkeletonColor = Color3.new(0.403922, 0.34902, 0.701961),
+    ChamsColor = Color3.new(1, 0, 0),
+    TracerOrigin = "Bottom Screen",
+    TracerColor = Color3.new(0.403922, 0.34902, 0.701961)
+}
+espModule.State = {
+    BoxEnabled = false,
+    NameEnabled = false,
+    DistanceEnabled = false,
+    SkeletonEnabled = false,
+    HealthTextEnabled = false,
+    HealthBarEnabled = false,
+    TracerEnabled = false,
+    ChamsEnabled = false
+}
+espModule.Caches = {
+    BoxCache = {},
+    SkeletonCache = {},
+    HealthCache = {},
+    TracerCache = {},
+    ChamsCache = {}
+}
+local localPlayer = playersService.LocalPlayer
+local currentCamera = workspaceService.CurrentCamera
+local updateInterval = 30
+local heartbeatConnection = nil
+local renderConnection = nil
+local function safeCall(callback)
+    local success, errorMessage = pcall(callback)
+    if not success then
+        warn("ZixyESP Error: " .. tostring(errorMessage))
+    end
+end
+function espModule.CreateBox(self, _)
+    local boxDrawings = {
+        Box = Drawing.new("Square"),
+        Name = Drawing.new("Text"),
+        Distance = Drawing.new("Text"),
+        HealthText = Drawing.new("Text"),
+        HealthBarBackground = Drawing.new("Square"),
+        HealthBar = Drawing.new("Square")
+    }
+    boxDrawings.Box.Thickness = 2
+    boxDrawings.Box.Color = self.Config.BoxColor
+    boxDrawings.Box.Filled = false
+    boxDrawings.Box.Visible = false
+    boxDrawings.Name.Size = 16
+    boxDrawings.Name.Color = Color3.new(1, 1, 1)
+    boxDrawings.Name.Outline = true
+    boxDrawings.Name.Center = true
+    boxDrawings.Name.Visible = false
+    boxDrawings.Distance.Size = 16
+    boxDrawings.Distance.Color = Color3.new(1, 1, 1)
+    boxDrawings.Distance.Outline = true
+    boxDrawings.Distance.Center = true
+    boxDrawings.Distance.Visible = false
+    boxDrawings.HealthText.Size = 16
+    boxDrawings.HealthText.Color = Color3.new(1, 1, 1)
+    boxDrawings.HealthText.Outline = true
+    boxDrawings.HealthText.Center = true
+    boxDrawings.HealthText.Visible = false
+    boxDrawings.HealthBarBackground.Size = Vector2.new(5, 50)
+    boxDrawings.HealthBarBackground.Color = Color3.new(0, 0, 0)
+    boxDrawings.HealthBarBackground.Filled = true
+    boxDrawings.HealthBarBackground.Transparency = 0.5
+    boxDrawings.HealthBarBackground.Visible = false
+    boxDrawings.HealthBar.Size = Vector2.new(5, 50)
+    boxDrawings.HealthBar.Color = Color3.new(0, 1, 0)
+    boxDrawings.HealthBar.Filled = true
+    boxDrawings.HealthBar.Visible = false
+    return boxDrawings
+end
+function espModule.CreateSkeleton(self, targetPlayer)
+    local targetCharacter = targetPlayer.Character
+    local isR6 = targetCharacter and targetCharacter:FindFirstChild("Torso")
+    if isR6 then
+        isR6 = not targetCharacter:FindFirstChild("UpperTorso")
+    end
+    local skeletonLines
+    if isR6 then
+        skeletonLines = {
+            HeadToTorso = Drawing.new("Line"),
+            TorsoToLeftArm = Drawing.new("Line"),
+            TorsoToRightArm = Drawing.new("Line"),
+            TorsoToLeftLeg = Drawing.new("Line"),
+            TorsoToRightLeg = Drawing.new("Line")
+        }
+    else
+        skeletonLines = {
+            HeadToUpperTorso = Drawing.new("Line"),
+            UpperTorsoToLowerTorso = Drawing.new("Line"),
+            UpperTorsoToLeftUpperArm = Drawing.new("Line"),
+            LeftUpperArmToLeftLowerArm = Drawing.new("Line"),
+            LeftLowerArmToLeftHand = Drawing.new("Line"),
+            UpperTorsoToRightUpperArm = Drawing.new("Line"),
+            RightUpperArmToRightLowerArm = Drawing.new("Line"),
+            RightLowerArmToRightHand = Drawing.new("Line"),
+            LowerTorsoToLeftUpperLeg = Drawing.new("Line"),
+            LeftUpperLegToLeftLowerLeg = Drawing.new("Line"),
+            LeftLowerLegToLeftFoot = Drawing.new("Line"),
+            LowerTorsoToRightUpperLeg = Drawing.new("Line"),
+            RightUpperLegToRightLowerLeg = Drawing.new("Line"),
+            RightLowerLegToRightFoot = Drawing.new("Line")
+        }
+    end
+    for _, line in pairs(skeletonLines) do
+        line.Thickness = 2
+        line.Color = self.Config.SkeletonColor
+        line.Visible = false
+    end
+    return skeletonLines
+end
+function espModule.CreateTracer(self, _)
+    local tracerLine = Drawing.new("Line")
+    tracerLine.Thickness = 2
+    tracerLine.Color = self.Config.TracerColor
+    tracerLine.Visible = false
+    return tracerLine
+end
+function espModule.CreateChams(self, targetPlayer)
+    local highlight = Instance.new("Highlight")
+    highlight.FillColor = self.Config.ChamsColor
+    highlight.OutlineColor = Color3.new(1, 1, 1)
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.Parent = targetPlayer.Character
+    highlight.Adornee = targetPlayer.Character
+    return highlight
+end
+function espModule.ClearBox(self, targetPlayer)
+    if self.Caches.BoxCache[targetPlayer] then
+        self.Caches.BoxCache[targetPlayer].Box:Remove()
+        self.Caches.BoxCache[targetPlayer].Name:Remove()
+        self.Caches.BoxCache[targetPlayer].Distance:Remove()
+        self.Caches.BoxCache[targetPlayer].HealthText:Remove()
+        self.Caches.BoxCache[targetPlayer].HealthBarBackground:Remove()
+        self.Caches.BoxCache[targetPlayer].HealthBar:Remove()
+        self.Caches.BoxCache[targetPlayer] = nil
+    end
+end
+function espModule.ClearSkeleton(self, targetPlayer)
+    if self.Caches.SkeletonCache[targetPlayer] then
+        for _, line in pairs(self.Caches.SkeletonCache[targetPlayer]) do
+            line:Remove()
+        end
+        self.Caches.SkeletonCache[targetPlayer] = nil
+    end
+end
+function espModule.ClearTracer(self, targetPlayer)
+    if self.Caches.TracerCache[targetPlayer] then
+        self.Caches.TracerCache[targetPlayer]:Remove()
+        self.Caches.TracerCache[targetPlayer] = nil
+    end
+end
+function espModule.ClearChams(self, targetPlayer)
+    if self.Caches.ChamsCache[targetPlayer] then
+        self.Caches.ChamsCache[targetPlayer]:Destroy()
+        self.Caches.ChamsCache[targetPlayer] = nil
+    end
+end
+function espModule.UpdateBox(self)
+    if self.State.BoxEnabled or (self.State.NameEnabled or (self.State.DistanceEnabled or (self.State.HealthTextEnabled or self.State.HealthBarEnabled))) then
+        if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local localRoot = localPlayer.Character.HumanoidRootPart
+            local allPlayers = playersService
+            for _, otherPlayer in ipairs(allPlayers:GetPlayers()) do
+                if otherPlayer ~= localPlayer then
+                    if otherPlayer.Character and (otherPlayer.Character:FindFirstChild("HumanoidRootPart") and otherPlayer.Character:FindFirstChild("Humanoid")) then
+                        local otherCharacter = otherPlayer.Character
+                        local otherHumanoid = otherCharacter.Humanoid
+                        if otherHumanoid.Health > 0 then
+                            local otherRoot = otherCharacter.HumanoidRootPart
+                            local distance = (localRoot.Position - otherRoot.Position).Magnitude
+                            if self.Config.ESPDistance >= distance then
+                                if self.Config.TeamCheck and (localPlayer.Team and otherPlayer.Team == localPlayer.Team) then
+                                    self:ClearBox(otherPlayer)
+                                else
+                                    if not self.Caches.BoxCache[otherPlayer] then
+                                        self.Caches.BoxCache[otherPlayer] = self:CreateBox(otherPlayer)
+                                    end
+                                    local boxDrawings = self.Caches.BoxCache[otherPlayer]
+                                    local rootScreenPos, rootOnScreen = currentCamera:WorldToViewportPoint(otherRoot.Position)
+                                    if rootOnScreen then
+                                        local headPart = otherCharacter:FindFirstChild("Head")
+                                        local headTopScreenPos = headPart and currentCamera:WorldToViewportPoint(headPart.Position + Vector3.new(0, 1, 0)) or currentCamera:WorldToViewportPoint(otherRoot.Position + Vector3.new(0, 3, 0))
+                                        local feetScreenPos = currentCamera:WorldToViewportPoint(otherRoot.Position - Vector3.new(0, 3, 0))
+                                        local height = math.abs(headTopScreenPos.Y - feetScreenPos.Y)
+                                        local width = height * 0.66
+                                        local centerPos = Vector2.new(rootScreenPos.X, (headTopScreenPos.Y + feetScreenPos.Y) / 2)
+                                        boxDrawings.Box.Size = Vector2.new(width, height)
+                                        boxDrawings.Box.Position = centerPos - Vector2.new(width / 2, height / 2)
+                                        boxDrawings.Box.Visible = self.State.BoxEnabled
+                                        boxDrawings.Name.Text = otherPlayer.Name
+                                        boxDrawings.Name.Position = Vector2.new(rootScreenPos.X, headTopScreenPos.Y - 20)
+                                        boxDrawings.Name.Visible = self.State.NameEnabled
+                                        boxDrawings.Distance.Text = tostring(math.floor(distance)) .. " studs"
+                                        boxDrawings.Distance.Position = Vector2.new(rootScreenPos.X, feetScreenPos.Y + 5)
+                                        boxDrawings.Distance.Visible = self.State.DistanceEnabled
+                                        if self.State.HealthTextEnabled then
+                                            local healthPercent = otherHumanoid.Health / otherHumanoid.MaxHealth
+                                            boxDrawings.HealthText.Text = "Health: " .. tostring(math.floor(healthPercent * 100)) .. "%"
+                                            boxDrawings.HealthText.Position = Vector2.new(rootScreenPos.X, headTopScreenPos.Y - 40)
+                                            boxDrawings.HealthText.Visible = true
+                                        else
+                                            boxDrawings.HealthText.Visible = false
+                                        end
+                                        if self.State.HealthBarEnabled then
+                                            local healthPercent = otherHumanoid.Health / otherHumanoid.MaxHealth
+                                            local barWidth = 5
+                                            local barX = centerPos.X - width / 2 - 10
+                                            local barY = centerPos.Y - height / 2
+                                            boxDrawings.HealthBarBackground.Position = Vector2.new(barX, barY)
+                                            boxDrawings.HealthBarBackground.Size = Vector2.new(barWidth, height)
+                                            boxDrawings.HealthBarBackground.Visible = true
+                                            boxDrawings.HealthBar.Position = Vector2.new(barX, barY + height * (1 - healthPercent))
+                                            boxDrawings.HealthBar.Size = Vector2.new(barWidth, height * healthPercent)
+                                            boxDrawings.HealthBar.Color = Color3.new(1 - healthPercent, healthPercent, 0)
+                                            boxDrawings.HealthBar.Visible = true
+                                        else
+                                            boxDrawings.HealthBarBackground.Visible = false
+                                            boxDrawings.HealthBar.Visible = false
+                                        end
+                                    else
+                                        boxDrawings.Box.Visible = false
+                                        boxDrawings.Name.Visible = false
+                                        boxDrawings.Distance.Visible = false
+                                        boxDrawings.HealthText.Visible = false
+                                        boxDrawings.HealthBarBackground.Visible = false
+                                        boxDrawings.HealthBar.Visible = false
+                                    end
+                                end
+                            else
+                                self:ClearBox(otherPlayer)
+                            end
+                        else
+                            self:ClearBox(otherPlayer)
+                        end
+                    else
+                        self:ClearBox(otherPlayer)
+                    end
+                end
+            end
+        else
+            for player, _ in pairs(self.Caches.BoxCache) do
+                self:ClearBox(player)
+            end
+        end
+    else
+        for player, _ in pairs(self.Caches.BoxCache) do
+            self:ClearBox(player)
+        end
+        return
+    end
+end
+function espModule.UpdateSkeleton(self)
+    if self.State.SkeletonEnabled then
+        if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local localRoot = localPlayer.Character.HumanoidRootPart
+            local allPlayers = playersService
+            for _, otherPlayer in ipairs(allPlayers:GetPlayers()) do
+                local skipPlayer = false
+                local function setSkip()
+                    skipPlayer = true
+                end
+                if otherPlayer ~= localPlayer then
+                    if otherPlayer.Character and (otherPlayer.Character:FindFirstChild("HumanoidRootPart") and otherPlayer.Character:FindFirstChild("Humanoid")) then
+                        local otherCharacter = otherPlayer.Character
+                        if otherCharacter.Humanoid.Health > 0 then
+                            local otherRoot = otherCharacter.HumanoidRootPart
+                            if (localRoot.Position - otherRoot.Position).Magnitude <= self.Config.ESPDistance then
+                                if self.Config.TeamCheck and (localPlayer.Team and otherPlayer.Team == localPlayer.Team) then
+                                    self:ClearSkeleton(otherPlayer)
+                                else
+                                    if not self.Caches.SkeletonCache[otherPlayer] then
+                                        self.Caches.SkeletonCache[otherPlayer] = self:CreateSkeleton(otherPlayer)
+                                    end
+                                    local skeletonLines = self.Caches.SkeletonCache[otherPlayer]
+                                    local isR6 = otherCharacter:FindFirstChild("Torso")
+                                    if isR6 then
+                                        isR6 = not otherCharacter:FindFirstChild("UpperTorso")
+                                    end
+                                    local bodyParts
+                                    if isR6 then
+                                        bodyParts = {
+                                            Head = otherCharacter:FindFirstChild("Head"),
+                                            Torso = otherCharacter:FindFirstChild("Torso"),
+                                            LeftArm = otherCharacter:FindFirstChild("Left Arm"),
+                                            RightArm = otherCharacter:FindFirstChild("Right Arm"),
+                                            LeftLeg = otherCharacter:FindFirstChild("Left Leg"),
+                                            RightLeg = otherCharacter:FindFirstChild("Right Leg")
+                                        }
+                                    else
+                                        bodyParts = {
+                                            Head = otherCharacter:FindFirstChild("Head"),
+                                            UpperTorso = otherCharacter:FindFirstChild("UpperTorso") or otherCharacter:FindFirstChild("Torso"),
+                                            LowerTorso = otherCharacter:FindFirstChild("LowerTorso") or otherCharacter:FindFirstChild("HumanoidRootPart"),
+                                            LeftUpperArm = otherCharacter:FindFirstChild("LeftUpperArm"),
+                                            LeftLowerArm = otherCharacter:FindFirstChild("LeftLowerArm"),
+                                            LeftHand = otherCharacter:FindFirstChild("LeftHand"),
+                                            RightUpperArm = otherCharacter:FindFirstChild("RightUpperArm"),
+                                            RightLowerArm = otherCharacter:FindFirstChild("RightLowerArm"),
+                                            RightHand = otherCharacter:FindFirstChild("RightHand"),
+                                            LeftUpperLeg = otherCharacter:FindFirstChild("LeftUpperLeg"),
+                                            LeftLowerLeg = otherCharacter:FindFirstChild("LeftLowerLeg"),
+                                            LeftFoot = otherCharacter:FindFirstChild("LeftFoot"),
+                                            RightUpperLeg = otherCharacter:FindFirstChild("RightUpperLeg"),
+                                            RightLowerLeg = otherCharacter:FindFirstChild("RightLowerLeg"),
+                                            RightFoot = otherCharacter:FindFirstChild("RightFoot")
+                                        }
+                                    end
+                                    local allPartsExist = true
+                                    for _, part in pairs(bodyParts) do
+                                        if not part then
+                                            setSkip()
+                                            allPartsExist = false
+                                        end
+                                    end
+                                    if allPartsExist then
+                                        if isR6 then
+                                            local headScreenPos, headOnScreen = currentCamera:WorldToViewportPoint(bodyParts.Head.Position)
+                                            local torsoScreenPos, torsoOnScreen = currentCamera:WorldToViewportPoint(bodyParts.Torso.Position)
+                                            local leftArmScreenPos, leftArmOnScreen = currentCamera:WorldToViewportPoint(bodyParts.LeftArm.Position)
+                                            local rightArmScreenPos, rightArmOnScreen = currentCamera:WorldToViewportPoint(bodyParts.RightArm.Position)
+                                            local leftLegScreenPos, leftLegOnScreen = currentCamera:WorldToViewportPoint(bodyParts.LeftLeg.Position)
+                                            local rightLegScreenPos, rightLegOnScreen = currentCamera:WorldToViewportPoint(bodyParts.RightLeg.Position)
+                                            skeletonLines.HeadToTorso.From = Vector2.new(headScreenPos.X, headScreenPos.Y)
+                                            skeletonLines.HeadToTorso.To = Vector2.new(torsoScreenPos.X, torsoScreenPos.Y)
+                                            local headToTorsoLine = skeletonLines.HeadToTorso
+                                            if headOnScreen then
+                                                if torsoOnScreen then
+                                                    headOnScreen = self.State.SkeletonEnabled
+                                                else
+                                                    headOnScreen = torsoOnScreen
+                                                end
+                                            end
+                                            headToTorsoLine.Visible = headOnScreen
+                                            skeletonLines.TorsoToLeftArm.From = Vector2.new(torsoScreenPos.X, torsoScreenPos.Y)
+                                            skeletonLines.TorsoToLeftArm.To = Vector2.new(leftArmScreenPos.X, leftArmScreenPos.Y)
+                                            local torsoToLeftArmLine = skeletonLines.TorsoToLeftArm
+                                            if torsoOnScreen then
+                                                if leftArmOnScreen then
+                                                    leftArmOnScreen = self.State.SkeletonEnabled
+                                                end
+                                            else
+                                                leftArmOnScreen = torsoOnScreen
+                                            end
+                                            torsoToLeftArmLine.Visible = leftArmOnScreen
+                                            skeletonLines.TorsoToRightArm.From = Vector2.new(torsoScreenPos.X, torsoScreenPos.Y)
+                                            skeletonLines.TorsoToRightArm.To = Vector2.new(rightArmScreenPos.X, rightArmScreenPos.Y)
+                                            local torsoToRightArmLine = skeletonLines.TorsoToRightArm
+                                            if torsoOnScreen then
+                                                if rightArmOnScreen then
+                                                    rightArmOnScreen = self.State.SkeletonEnabled
+                                                end
+                                            else
+                                                rightArmOnScreen = torsoOnScreen
+                                            end
+                                            torsoToRightArmLine.Visible = rightArmOnScreen
+                                            skeletonLines.TorsoToLeftLeg.From = Vector2.new(torsoScreenPos.X, torsoScreenPos.Y)
+                                            skeletonLines.TorsoToLeftLeg.To = Vector2.new(leftLegScreenPos.X, leftLegScreenPos.Y)
+                                            local torsoToLeftLegLine = skeletonLines.TorsoToLeftLeg
+                                            if torsoOnScreen then
+                                                if leftLegOnScreen then
+                                                    leftLegOnScreen = self.State.SkeletonEnabled
+                                                end
+                                            else
+                                                leftLegOnScreen = torsoOnScreen
+                                            end
+                                            torsoToLeftLegLine.Visible = leftLegOnScreen
+                                            skeletonLines.TorsoToRightLeg.From = Vector2.new(torsoScreenPos.X, torsoScreenPos.Y)
+                                            skeletonLines.TorsoToRightLeg.To = Vector2.new(rightLegScreenPos.X, rightLegScreenPos.Y)
+                                            local torsoToRightLegLine = skeletonLines.TorsoToRightLeg
+                                            if torsoOnScreen then
+                                                if rightLegOnScreen then
+                                                    rightLegOnScreen = self.State.SkeletonEnabled
+                                                end
+                                            else
+                                                rightLegOnScreen = torsoOnScreen
+                                            end
+                                            torsoToRightLegLine.Visible = rightLegOnScreen
+                                        else
+                                            local headScreenPos, headOnScreen = currentCamera:WorldToViewportPoint(bodyParts.Head.Position)
+                                            local upperTorsoScreenPos, upperTorsoOnScreen = currentCamera:WorldToViewportPoint(bodyParts.UpperTorso.Position)
+                                            local lowerTorsoScreenPos, lowerTorsoOnScreen = currentCamera:WorldToViewportPoint(bodyParts.LowerTorso.Position)
+                                            local leftUpperArmScreenPos, leftUpperArmOnScreen = currentCamera:WorldToViewportPoint(bodyParts.LeftUpperArm.Position)
+                                            local leftLowerArmScreenPos, leftLowerArmOnScreen = currentCamera:WorldToViewportPoint(bodyParts.LeftLowerArm.Position)
+                                            local leftHandScreenPos, leftHandOnScreen = currentCamera:WorldToViewportPoint(bodyParts.LeftHand.Position)
+                                            local rightUpperArmScreenPos, rightUpperArmOnScreen = currentCamera:WorldToViewportPoint(bodyParts.RightUpperArm.Position)
+                                            local rightLowerArmScreenPos, rightLowerArmOnScreen = currentCamera:WorldToViewportPoint(bodyParts.RightLowerArm.Position)
+                                            local rightHandScreenPos, rightHandOnScreen = currentCamera:WorldToViewportPoint(bodyParts.RightHand.Position)
+                                            local leftUpperLegScreenPos, leftUpperLegOnScreen = currentCamera:WorldToViewportPoint(bodyParts.LeftUpperLeg.Position)
+                                            local leftLowerLegScreenPos, leftLowerLegOnScreen = currentCamera:WorldToViewportPoint(bodyParts.LeftLowerLeg.Position)
+                                            local leftFootScreenPos, leftFootOnScreen = currentCamera:WorldToViewportPoint(bodyParts.LeftFoot.Position)
+                                            local rightUpperLegScreenPos, rightUpperLegOnScreen = currentCamera:WorldToViewportPoint(bodyParts.RightUpperLeg.Position)
+                                            local rightLowerLegScreenPos, rightLowerLegOnScreen = currentCamera:WorldToViewportPoint(bodyParts.RightLowerLeg.Position)
+                                            local rightFootScreenPos, rightFootOnScreen = currentCamera:WorldToViewportPoint(bodyParts.RightFoot.Position)
+                                            skeletonLines.HeadToUpperTorso.From = Vector2.new(headScreenPos.X, headScreenPos.Y)
+                                            skeletonLines.HeadToUpperTorso.To = Vector2.new(upperTorsoScreenPos.X, upperTorsoScreenPos.Y)
+                                            local headToUpperTorsoLine = skeletonLines.HeadToUpperTorso
+                                            if headOnScreen then
+                                                if upperTorsoOnScreen then
+                                                    headOnScreen = self.State.SkeletonEnabled
+                                                else
+                                                    headOnScreen = upperTorsoOnScreen
+                                                end
+                                            end
+                                            headToUpperTorsoLine.Visible = headOnScreen
+                                            skeletonLines.UpperTorsoToLowerTorso.From = Vector2.new(upperTorsoScreenPos.X, upperTorsoScreenPos.Y)
+                                            skeletonLines.UpperTorsoToLowerTorso.To = Vector2.new(lowerTorsoScreenPos.X, lowerTorsoScreenPos.Y)
+                                            local upperToLowerTorsoLine = skeletonLines.UpperTorsoToLowerTorso
+                                            local tempVisible
+                                            if upperTorsoOnScreen then
+                                                if lowerTorsoOnScreen then
+                                                    tempVisible = self.State.SkeletonEnabled
+                                                else
+                                                    tempVisible = lowerTorsoOnScreen
+                                                end
+                                            else
+                                                tempVisible = upperTorsoOnScreen
+                                            end
+                                            upperToLowerTorsoLine.Visible = tempVisible
+                                            skeletonLines.UpperTorsoToLeftUpperArm.From = Vector2.new(upperTorsoScreenPos.X, upperTorsoScreenPos.Y)
+                                            skeletonLines.UpperTorsoToLeftUpperArm.To = Vector2.new(leftUpperArmScreenPos.X, leftUpperArmScreenPos.Y)
+                                            local upperToLeftUpperArmLine = skeletonLines.UpperTorsoToLeftUpperArm
+                                            local tempVisible2
+                                            if upperTorsoOnScreen then
+                                                if leftUpperArmOnScreen then
+                                                    tempVisible2 = self.State.SkeletonEnabled
+                                                else
+                                                    tempVisible2 = leftUpperArmOnScreen
+                                                end
+                                            else
+                                                tempVisible2 = upperTorsoOnScreen
+                                            end
+                                            upperToLeftUpperArmLine.Visible = tempVisible2
+                                            skeletonLines.LeftUpperArmToLeftLowerArm.From = Vector2.new(leftUpperArmScreenPos.X, leftUpperArmScreenPos.Y)
+                                            skeletonLines.LeftUpperArmToLeftLowerArm.To = Vector2.new(leftLowerArmScreenPos.X, leftLowerArmScreenPos.Y)
+                                            local leftUpperToLowerArmLine = skeletonLines.LeftUpperArmToLeftLowerArm
+                                            if leftUpperArmOnScreen then
+                                                if leftLowerArmOnScreen then
+                                                    leftUpperArmOnScreen = self.State.SkeletonEnabled
+                                                else
+                                                    leftUpperArmOnScreen = leftLowerArmOnScreen
+                                                end
+                                            end
+                                            leftUpperToLowerArmLine.Visible = leftUpperArmOnScreen
+                                            skeletonLines.LeftLowerArmToLeftHand.From = Vector2.new(leftLowerArmScreenPos.X, leftLowerArmScreenPos.Y)
+                                            skeletonLines.LeftLowerArmToLeftHand.To = Vector2.new(leftHandScreenPos.X, leftHandScreenPos.Y)
+                                            local leftLowerArmToHandLine = skeletonLines.LeftLowerArmToLeftHand
+                                            if leftLowerArmOnScreen then
+                                                if leftHandOnScreen then
+                                                    leftHandOnScreen = self.State.SkeletonEnabled
+                                                end
+                                            else
+                                                leftHandOnScreen = leftLowerArmOnScreen
+                                            end
+                                            leftLowerArmToHandLine.Visible = leftHandOnScreen
+                                            skeletonLines.UpperTorsoToRightUpperArm.From = Vector2.new(upperTorsoScreenPos.X, upperTorsoScreenPos.Y)
+                                            skeletonLines.UpperTorsoToRightUpperArm.To = Vector2.new(rightUpperArmScreenPos.X, rightUpperArmScreenPos.Y)
+                                            local upperToRightUpperArmLine = skeletonLines.UpperTorsoToRightUpperArm
+                                            if upperTorsoOnScreen then
+                                                if rightUpperArmOnScreen then
+                                                    upperTorsoOnScreen = self.State.SkeletonEnabled
+                                                else
+                                                    upperTorsoOnScreen = rightUpperArmOnScreen
+                                                end
+                                            end
+                                            upperToRightUpperArmLine.Visible = upperTorsoOnScreen
+                                            skeletonLines.RightUpperArmToRightLowerArm.From = Vector2.new(rightUpperArmScreenPos.X, rightUpperArmScreenPos.Y)
+                                            skeletonLines.RightUpperArmToRightLowerArm.To = Vector2.new(rightLowerArmScreenPos.X, rightLowerArmScreenPos.Y)
+                                            local rightUpperToLowerArmLine = skeletonLines.RightUpperArmToRightLowerArm
+                                            if rightUpperArmOnScreen then
+                                                if rightLowerArmOnScreen then
+                                                    rightUpperArmOnScreen = self.State.SkeletonEnabled
+                                                else
+                                                    rightUpperArmOnScreen = rightLowerArmOnScreen
+                                                end
+                                            end
+                                            rightUpperToLowerArmLine.Visible = rightUpperArmOnScreen
+                                            skeletonLines.RightLowerArmToRightHand.From = Vector2.new(rightLowerArmScreenPos.X, rightLowerArmScreenPos.Y)
+                                            skeletonLines.RightLowerArmToRightHand.To = Vector2.new(rightHandScreenPos.X, rightHandScreenPos.Y)
+                                            local rightLowerArmToHandLine = skeletonLines.RightLowerArmToRightHand
+                                            if rightLowerArmOnScreen then
+                                                if rightHandOnScreen then
+                                                    rightHandOnScreen = self.State.SkeletonEnabled
+                                                end
+                                            else
+                                                rightHandOnScreen = rightLowerArmOnScreen
+                                            end
+                                            rightLowerArmToHandLine.Visible = rightHandOnScreen
+                                            skeletonLines.LowerTorsoToLeftUpperLeg.From = Vector2.new(lowerTorsoScreenPos.X, lowerTorsoScreenPos.Y)
+                                            skeletonLines.LowerTorsoToLeftUpperLeg.To = Vector2.new(leftUpperLegScreenPos.X, leftUpperLegScreenPos.Y)
+                                            local lowerToLeftUpperLegLine = skeletonLines.LowerTorsoToLeftUpperLeg
+                                            local tempVisible3
+                                            if lowerTorsoOnScreen then
+                                                if leftUpperLegOnScreen then
+                                                    tempVisible3 = self.State.SkeletonEnabled
+                                                else
+                                                    tempVisible3 = leftUpperLegOnScreen
+                                                end
+                                            else
+                                                tempVisible3 = lowerTorsoOnScreen
+                                            end
+                                            lowerToLeftUpperLegLine.Visible = tempVisible3
+                                            skeletonLines.LeftUpperLegToLeftLowerLeg.From = Vector2.new(leftUpperLegScreenPos.X, leftUpperLegScreenPos.Y)
+                                            skeletonLines.LeftUpperLegToLeftLowerLeg.To = Vector2.new(leftLowerLegScreenPos.X, leftLowerLegScreenPos.Y)
+                                            local leftUpperToLowerLegLine = skeletonLines.LeftUpperLegToLeftLowerLeg
+                                            if leftUpperLegOnScreen then
+                                                if leftLowerLegOnScreen then
+                                                    leftUpperLegOnScreen = self.State.SkeletonEnabled
+                                                else
+                                                    leftUpperLegOnScreen = leftLowerLegOnScreen
+                                                end
+                                            end
+                                            leftUpperToLowerLegLine.Visible = leftUpperLegOnScreen
+                                            skeletonLines.LeftLowerLegToLeftFoot.From = Vector2.new(leftLowerLegScreenPos.X, leftLowerLegScreenPos.Y)
+                                            skeletonLines.LeftLowerLegToLeftFoot.To = Vector2.new(leftFootScreenPos.X, leftFootScreenPos.Y)
+                                            local leftLowerLegToFootLine = skeletonLines.LeftLowerLegToLeftFoot
+                                            if leftLowerLegOnScreen then
+                                                if leftFootOnScreen then
+                                                    leftFootOnScreen = self.State.SkeletonEnabled
+                                                end
+                                            else
+                                                leftFootOnScreen = leftLowerLegOnScreen
+                                            end
+                                            leftLowerLegToFootLine.Visible = leftFootOnScreen
+                                            skeletonLines.LowerTorsoToRightUpperLeg.From = Vector2.new(lowerTorsoScreenPos.X, lowerTorsoScreenPos.Y)
+                                            skeletonLines.LowerTorsoToRightUpperLeg.To = Vector2.new(rightUpperLegScreenPos.X, rightUpperLegScreenPos.Y)
+                                            local lowerToRightUpperLegLine = skeletonLines.LowerTorsoToRightUpperLeg
+                                            if lowerTorsoOnScreen then
+                                                if rightUpperLegOnScreen then
+                                                    lowerTorsoOnScreen = self.State.SkeletonEnabled
+                                                else
+                                                    lowerTorsoOnScreen = rightUpperLegOnScreen
+                                                end
+                                            end
+                                            lowerToRightUpperLegLine.Visible = lowerTorsoOnScreen
+                                            skeletonLines.RightUpperLegToRightLowerLeg.From = Vector2.new(rightUpperLegScreenPos.X, rightUpperLegScreenPos.Y)
+                                            skeletonLines.RightUpperLegToRightLowerLeg.To = Vector2.new(rightLowerLegScreenPos.X, rightLowerLegScreenPos.Y)
+                                            local rightUpperToLowerLegLine = skeletonLines.RightUpperLegToRightLowerLeg
+                                            if rightUpperLegOnScreen then
+                                                if rightLowerLegOnScreen then
+                                                    rightUpperLegOnScreen = self.State.SkeletonEnabled
+                                                else
+                                                    rightUpperLegOnScreen = rightLowerLegOnScreen
+                                                end
+                                            end
+                                            rightUpperToLowerLegLine.Visible = rightUpperLegOnScreen
+                                            skeletonLines.RightLowerLegToRightFoot.From = Vector2.new(rightLowerLegScreenPos.X, rightLowerLegScreenPos.Y)
+                                            skeletonLines.RightLowerLegToRightFoot.To = Vector2.new(rightFootScreenPos.X, rightFootScreenPos.Y)
+                                            local rightLowerLegToFootLine = skeletonLines.RightLowerLegToRightFoot
+                                            if rightLowerLegOnScreen then
+                                                if rightFootOnScreen then
+                                                    rightFootOnScreen = self.State.SkeletonEnabled
+                                                end
+                                            else
+                                                rightFootOnScreen = rightLowerLegOnScreen
+                                            end
+                                            rightLowerLegToFootLine.Visible = rightFootOnScreen
+                                        end
+                                    else
+                                        self:ClearSkeleton(otherPlayer)
+                                    end
+                                end
+                            else
+                                self:ClearSkeleton(otherPlayer)
+                            end
+                        else
+                            self:ClearSkeleton(otherPlayer)
+                        end
+                    else
+                        self:ClearSkeleton(otherPlayer)
+                    end
+                end
+                if skipPlayer then
+                    break
+                end
+            end
+        else
+            for player, _ in pairs(self.Caches.SkeletonCache) do
+                self:ClearSkeleton(player)
+            end
+        end
+    else
+        for player, _ in pairs(self.Caches.SkeletonCache) do
+            self:ClearSkeleton(player)
+        end
+        return
+    end
+end
+function espModule.UpdateTracer(self)
+    if self.State.TracerEnabled then
+        if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local localRoot = localPlayer.Character.HumanoidRootPart
+            local viewportSize = currentCamera.ViewportSize
+            local originPos = nil
+            if self.Config.TracerOrigin ~= "Bottom Screen" then
+                if self.Config.TracerOrigin ~= "Cursor" then
+                    if self.Config.TracerOrigin == "Top Screen" then
+                        originPos = Vector2.new(viewportSize.X / 2, 0)
+                    end
+                else
+                    originPos = userInputService:GetMouseLocation()
+                end
+            else
+                originPos = Vector2.new(viewportSize.X / 2, viewportSize.Y)
+            end
+            local allPlayers = playersService
+            for _, otherPlayer in ipairs(allPlayers:GetPlayers()) do
+                if otherPlayer ~= localPlayer then
+                    if otherPlayer.Character and (otherPlayer.Character:FindFirstChild("HumanoidRootPart") and otherPlayer.Character:FindFirstChild("Humanoid")) then
+                        local otherCharacter = otherPlayer.Character
+                        if otherCharacter.Humanoid.Health > 0 then
+                            local tracerTarget = otherCharacter:FindFirstChild("Head") or otherCharacter.HumanoidRootPart
+                            if (localRoot.Position - tracerTarget.Position).Magnitude <= self.Config.ESPDistance then
+                                if self.Config.TeamCheck and (localPlayer.Team and otherPlayer.Team == localPlayer.Team) then
+                                    self:ClearTracer(otherPlayer)
+                                else
+                                    if not self.Caches.TracerCache[otherPlayer] then
+                                        self.Caches.TracerCache[otherPlayer] = self:CreateTracer(otherPlayer)
+                                    end
+                                    local tracerLine = self.Caches.TracerCache[otherPlayer]
+                                    local targetScreenPos, targetOnScreen = currentCamera:WorldToViewportPoint(tracerTarget.Position)
+                                    tracerLine.From = originPos
+                                    tracerLine.To = Vector2.new(targetScreenPos.X, targetScreenPos.Y)
+                                    if targetOnScreen then
+                                        targetOnScreen = self.State.TracerEnabled
+                                    end
+                                    tracerLine.Visible = targetOnScreen
+                                end
+                            else
+                                self:ClearTracer(otherPlayer)
+                            end
+                        else
+                            self:ClearTracer(otherPlayer)
+                        end
+                    else
+                        self:ClearTracer(otherPlayer)
+                    end
+                end
+            end
+        else
+            for player, _ in pairs(self.Caches.TracerCache) do
+                self:ClearTracer(player)
+            end
+        end
+    else
+        for player, _ in pairs(self.Caches.TracerCache) do
+            self:ClearTracer(player)
+        end
+        return
+    end
+end
+function espModule.UpdateChams(self)
+    if self.State.ChamsEnabled then
+        if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local localRoot = localPlayer.Character.HumanoidRootPart
+            local allPlayers = playersService
+            for _, otherPlayer in ipairs(allPlayers:GetPlayers()) do
+                if otherPlayer ~= localPlayer then
+                    if otherPlayer.Character and (otherPlayer.Character:FindFirstChild("HumanoidRootPart") and otherPlayer.Character:FindFirstChild("Humanoid")) then
+                        local otherCharacter = otherPlayer.Character
+                        if otherCharacter.Humanoid.Health > 0 then
+                            local otherRoot = otherCharacter.HumanoidRootPart
+                            if (localRoot.Position - otherRoot.Position).Magnitude <= self.Config.ESPDistance then
+                                if self.Config.TeamCheck and (localPlayer.Team and otherPlayer.Team == localPlayer.Team) then
+                                    self:ClearChams(otherPlayer)
+                                elseif not self.Caches.ChamsCache[otherPlayer] then
+                                    self.Caches.ChamsCache[otherPlayer] = self:CreateChams(otherPlayer)
+                                end
+                            else
+                                self:ClearChams(otherPlayer)
+                            end
+                        else
+                            self:ClearChams(otherPlayer)
+                        end
+                    else
+                        self:ClearChams(otherPlayer)
+                    end
+                end
+            end
+        else
+            for player, _ in pairs(self.Caches.ChamsCache) do
+                self:ClearChams(player)
+            end
+        end
+    else
+        for player, _ in pairs(self.Caches.ChamsCache) do
+            self:ClearChams(player)
+        end
+        return
+    end
+end
+function espModule.new()
+    return setmetatable({}, espModule)
+end
+function espModule.InitiateBox(self, newColor, enable)
+    self.State.BoxEnabled = enable ~= false
+    if newColor then
+        self.Config.BoxColor = newColor
+        for _, drawings in pairs(self.Caches.BoxCache) do
+            drawings.Box.Color = newColor
+        end
+    end
+end
+function espModule.InitiateName(self, enable)
+    self.State.NameEnabled = enable == true
+end
+function espModule.InitiateDistance(self, enable)
+    self.State.DistanceEnabled = enable == true
+end
+function espModule.InitiateSkeleton(self, newColor, enable)
+    self.State.SkeletonEnabled = enable ~= false
+    if newColor then
+        self.Config.SkeletonColor = newColor
+        for _, lines in pairs(self.Caches.SkeletonCache) do
+            for _, line in pairs(lines) do
+                line.Color = newColor
+            end
+        end
+    end
+end
+function espModule.InitiateHealthText(self, enable)
+    self.State.HealthTextEnabled = enable == true
+end
+function espModule.InitiateHealthBar(self, enable)
+    self.State.HealthBarEnabled = enable == true
+end
+function espModule.InitiateTracer(self, newColor, newOrigin, enable)
+    self.State.TracerEnabled = enable ~= false
+    if newColor then
+        self.Config.TracerColor = newColor
+        for _, line in pairs(self.Caches.TracerCache) do
+            line.Color = newColor
+        end
+    end
+    if newOrigin then
+        self.Config.TracerOrigin = newOrigin
+    end
+end
+function espModule.InitiateChams(self, newColor, enable)
+    self.State.ChamsEnabled = enable ~= false
+    if newColor then
+        self.Config.ChamsColor = newColor
+        for _, highlight in pairs(self.Caches.ChamsCache) do
+            highlight.FillColor = newColor
+        end
+    end
+end
+function espModule.SetDistance(self, newDistance)
+    self.Config.ESPDistance = newDistance
+end
+function espModule.TeamCheck(self, enable)
+    self.Config.TeamCheck = enable
+end
+function espModule.Cleanup(self)
+    for player, _ in pairs(self.Caches.BoxCache) do
+        self:ClearBox(player)
+    end
+    for player, _ in pairs(self.Caches.SkeletonCache) do
+        self:ClearSkeleton(player)
+    end
+    for player, _ in pairs(self.Caches.TracerCache) do
+        self:ClearTracer(player)
+    end
+    for player, _ in pairs(self.Caches.ChamsCache) do
+        self:ClearChams(player)
+    end
+end
+function espModule.Destroy(self)
+    self:Cleanup()
+    if heartbeatConnection then
+        heartbeatConnection:Disconnect()
+    end
+    if renderConnection then
+        renderConnection:Disconnect()
+    end
+    self.State.BoxEnabled = false
+    self.State.NameEnabled = false
+    self.State.DistanceEnabled = false
+    self.State.SkeletonEnabled = false
+    self.State.HealthTextEnabled = false
+    self.State.HealthBarEnabled = false
+    self.State.TracerEnabled = false
+    self.State.ChamsEnabled = false
+end
+function espModule.Initialize(self)
+    playersService.PlayerRemoving:Connect(function(removedPlayer)
+        safeCall(function()
+            self:ClearBox(removedPlayer)
+            self:ClearSkeleton(removedPlayer)
+            self:ClearTracer(removedPlayer)
+            self:ClearChams(removedPlayer)
+        end)
+    end)
+    playersService.PlayerAdded:Connect(function(addedPlayer)
+        addedPlayer.CharacterAdded:Connect(function(newCharacter)
+            newCharacter.AncestryChanged:Connect(function()
+                if not newCharacter:IsDescendantOf(workspaceService) then
+                    safeCall(function()
+                        self:ClearBox(addedPlayer)
+                        self:ClearSkeleton(addedPlayer)
+                        self:ClearTracer(addedPlayer)
+                        self:ClearChams(addedPlayer)
+                    end)
+                end
+            end)
+            local humanoid = newCharacter:FindFirstChild("Humanoid")
+            if humanoid then
+                humanoid.Died:Connect(function()
+                    safeCall(function()
+                        self:ClearBox(addedPlayer)
+                        self:ClearSkeleton(addedPlayer)
+                        self:ClearTracer(addedPlayer)
+                        self:ClearChams(addedPlayer)
+                    end)
+                end)
+            end
+        end)
+    end)
+    heartbeatConnection = runService.Heartbeat:Connect(function()
+        if os.clock() % updateInterval < 0.1 then
+            safeCall(function()
+                self:Cleanup()
+            end)
+        end
+    end)
+    renderConnection = runService.RenderStepped:Connect(function()
+        safeCall(function()
+            self:UpdateBox()
+        end)
+        safeCall(function()
+            self:UpdateSkeleton()
+        end)
+        safeCall(function()
+            self:UpdateTracer()
+        end)
+        safeCall(function()
+            self:UpdateChams()
+        end)
+    end)
+end
+return espModule
