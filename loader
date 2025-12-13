@@ -325,6 +325,7 @@ local matchacc = {
 	    Resolver = false,
         TargetStats = false,
         Autokill = false,
+        DotCircle = false,
     },
     HitEffects = {
         HitSounds = false,
@@ -386,6 +387,29 @@ local matchacc = {
         JumpPower = 50,  -- Default Roblox jumppower
     },
 }
+local oldVelPos = {}
+--// Silent Aim Dot Circle
+local DotCircle = Drawing.new("Circle")
+DotCircle.Visible = false
+DotCircle.Filled = true
+DotCircle.Radius = 5
+DotCircle.Thickness = 1.5
+DotCircle.Color = Color3.fromRGB(255, 255, 255)
+DotCircle.Transparency = 1
+
+--// Supported Games Table
+local SupportedGames = {
+    [134466866823998]    = {Name = "Hood Spirit", Arg = "UpdateMousePos", Remote = "MainEvent"},
+    [136445500005916]    = {Name = "Da Hood Bot Aim Trainer", Arg = "MOUSE", Remote = "MAINEVENT"},
+    [134663378603568]    = {Name = "Da Battles", Arg = "MoonUpdateMousePos", Remote = "MainEvent"},
+    [107421338926623]    = {Name = "Mad Hood", Arg = "UpdateMousePos", Remote = "MainEvent"},
+    [122498301850823] = {Name = "Da Downhill", Arg = "MOUSE", Remote = "MAINEVENT"},
+    [91065483292550]  = {Name = "Hood Bank", Arg = "MOUSE", Remote = "MAINEVENT"},
+    [93283444799920]  = {Name = "Da Uphill", Arg = "MOUSE", Remote = "MAINEVENT"},
+    [134531910435633] = {Name = "Da Strike", Arg = "MOUSE", Remote = "MAINEVENT"},
+    [111208915794141] = {Name = "Hood Z", Arg = "UpdateMousePos", Remote = "MainEvent"}
+}
+local CurrentGame = SupportedGames[game.PlaceId]
 if not LPH_OBFUSCATED then
     LPH_JIT = function(...) return ... end
 LPH_NO_VIRTUALIZE  = function(...) return ... end
@@ -1078,7 +1102,20 @@ TargetAimTab:AddToggle('Highlight', {
         matchacc.TargetAim.HighlightOutlineColor = Value
     end
 })
-
+TargetAimTab:AddToggle('DotCircle', {
+    Text = 'Dot Circle',
+    Default = false,
+    Callback = function(Value)
+        matchacc.TargetAim.DotCircle = Value
+        DotCircle.Visible = Value and matchacc.TargetAim.Enabled
+    end
+}):AddColorPicker('DotCircleColor', {
+    Default = Color3.fromRGB(255, 255, 255),
+    Title = 'Dot Color',
+    Callback = function(Value)
+        DotCircle.Color = Value
+    end
+})
 TargetAimTab:AddToggle('Tracer', {
     Text = 'Tracer',
     Default = false,
@@ -5171,7 +5208,7 @@ local function CreateCore()
     Weld.C0 = CFrame.new(0, 0, 0)
     return Core
 end
-
+coroutine.wrap(function()
 local currentMove = Vector3.zero
 
 -- Kiểm tra có đang di chuyển không
@@ -5666,6 +5703,7 @@ RunService.Heartbeat:Connect(function(dt)
         end
     end
 end) 
+end)()
 coroutine.wrap(function()
 local Mouse = LocalPlayer:GetMouse()
 local Stats = game:GetService("Stats")
@@ -5761,7 +5799,92 @@ RunService.Heartbeat:Connect(function(dt)
         end
     end
 end)
+RunService.Heartbeat:Connect(function(delta)
+    if not matchacc.TargetAim.Enabled or matchacc.TargetAim.Target == "None" then
+        DotCircle.Visible = false
+        return
+    end
 
+    local targetPlayer = Players:FindFirstChild(matchacc.TargetAim.Target)
+    if not targetPlayer or not targetPlayer.Character then
+        DotCircle.Visible = false
+        return
+    end
+
+    local hitPart = targetPlayer.Character:FindFirstChild(matchacc.TargetAim.HitPart)
+    if not hitPart then
+        DotCircle.Visible = false
+        return
+    end
+
+    -- Resolver
+    if matchacc.TargetAim.Resolver then
+        local hrp = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local lastPos = oldVelPos[targetPlayer]
+            if lastPos then
+                local calculatedVel = (hrp.Position - lastPos) / delta
+                hitPart.Velocity = calculatedVel
+            end
+            oldVelPos[targetPlayer] = hrp.Position
+        end
+    end
+    local predictVal = matchacc.TargetAim.AutoPredict and matchacc.TargetAim.PredictMode == "Ping" and (Stats.Network.ServerStatsItem["Data Ping"]:GetValue() / 1000 + 0.035) or matchacc.TargetAim.Prediction
+    local predictedPos = hitPart.Position + hitPart.Velocity * predictVal
+    local screenPos, onScreen = Camera:WorldToViewportPoint(predictedPos)
+
+    if onScreen and matchacc.TargetAim.DotCircle then
+        DotCircle.Position = Vector2.new(screenPos.X, screenPos.Y)
+        DotCircle.Visible = true
+    else
+        DotCircle.Visible = false
+    end
+end)
+local remote = ReplicatedStorage:FindFirstChild(CurrentGame.Remote)
+local function SetupSilentAim()
+    local char = LocalPlayer.Character
+    if not char then return end
+
+    for _, tool in pairs(char:GetChildren()) do
+        if tool:IsA("Tool") then
+            tool.Activated:Connect(function()
+                if not matchacc.TargetAim.Enabled or matchacc.TargetAim.Target == "None" or not CurrentGame then return end
+
+                local targetPlayer = Players:FindFirstChild(matchacc.TargetAim.Target)
+                if not targetPlayer or not targetPlayer.Character then return end
+
+                local hitPart = targetPlayer.Character:FindFirstChild(matchacc.TargetAim.HitPart)
+                if not hitPart then return end
+
+                -- Prediction giống trên
+                local predictVal = matchacc.TargetAim.Prediction
+                if matchacc.TargetAim.AutoPredict then
+                    if matchacc.TargetAim.PredictMode == "Ping" then
+                        predictVal = (game.Stats.Network.ServerStatsItem["Data Ping"]:GetValue() / 1000) + 0.035
+                    elseif matchacc.TargetAim.PredictMode == "Calculate" then
+                        predictVal = (hitPart.Position - Camera.CFrame.Position).Magnitude / 1000 + 0.13
+                    end
+                end
+
+                local predictedPos = hitPart.Position + hitPart.Velocity * predictVal
+
+                if remote then
+                    remote:FireServer(CurrentGame.Arg, predictedPos)
+                end
+            end)
+        end
+    end
+end
+if CurrentGame then
+	LocalPlayer.CharacterAdded:Connect(function(char)
+	    char.ChildAdded:Connect(function(child)
+	        if child:IsA("Tool") then
+	            child.Activated:Connect(SetupSilentAim)
+	        end
+	    end)
+	end)
+end
+if LocalPlayer.Character then SetupSilentAim() end
 if getnamecallmethod and not isMobile then
     local Meta = getrawmetatable(game)
     local backupindex = Meta.__index
@@ -5950,6 +6073,7 @@ players.PlayerRemoving:Connect(function(plr)
         lastTargetCharacter = nil
     end
 end)
+
 game:GetService("RunService").Stepped:Connect(function()
     pingvalue = game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValueString()
     split = string.split(pingvalue, '(')
