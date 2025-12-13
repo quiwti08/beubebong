@@ -5883,7 +5883,6 @@ local ShopTable = {
 }
 
 local headshots = {}
-headshots.AutoArmor = {Enabled = false}
 headshots.AutoLoadout = {Enabled = false, Gun = '[Rifle]'}
 local pingvalue = nil
 local split = nil
@@ -5946,7 +5945,7 @@ RunService.Heartbeat:Connect(function(dt)
 	        end
 	    end
 	end
-    local useDesync = matchacc.TargetAim.Strafe or matchacc.TargetAim.AutoStomp or matchacc.KillAura.StompAura or matchacc.TargetAim.AutoKill or headshots.AutoArmor.Enabled or headshots.AutoLoadout.Enabled or BuyingAmmo or BuyingSingle 
+    local useDesync = matchacc.TargetAim.Strafe or matchacc.TargetAim.AutoStomp or matchacc.KillAura.StompAura or matchacc.TargetAim.AutoKill or headshots.AutoLoadout.Enabled or BuyingAmmo or BuyingSingle 
     local TargetPlayer = players:FindFirstChild(matchacc.TargetAim.Target)
     local hrp = localPlayer.Character:FindFirstChild("HumanoidRootPart")
     local Tool = localPlayer.Character:FindFirstChildOfClass("Tool")
@@ -6136,7 +6135,7 @@ RunService.Heartbeat:Connect(function(dt)
     local Tool = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Tool")
     local SavedPosition = hrp and hrp.CFrame
 
-	local useDesync = matchacc.TargetAim.Strafe or matchacc.TargetAim.AutoStomp or matchacc.KillAura.StompAura or matchacc.TargetAim.AutoKill or headshots.AutoArmor.Enabled or headshots.AutoLoadout.Enabled or BuyingAmmo or BuyingSingle 
+	local useDesync = matchacc.TargetAim.Strafe or matchacc.TargetAim.AutoStomp or matchacc.KillAura.StompAura or matchacc.TargetAim.AutoKill or headshots.AutoLoadout.Enabled or BuyingAmmo or BuyingSingle 
     abletodesync = not (AutoKillActive or TargetAimActive or AutoArmorActive or AutoLoadoutActive or BuyingAmmoActive or BuyingSingleActive or AutoHealActive)
 	if matchacc.TargetAim.Enabled and matchacc.TargetAim.Target ~= "None" then
 	    local TargetPlayer = players:FindFirstChild(matchacc.TargetAim.Target)
@@ -6431,10 +6430,6 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
             end
         end
     end
-    -- Auto Armor Logic
-    if headshots.AutoArmor.Enabled and game.Players.LocalPlayer.Character.BodyEffects.Armor.Value < 100 then
-        AutoArmorActive = true
-    end
     -- Checking for desync
     if AutoKillActive or TargetAimActive or AutoArmorActive or AutoLoadoutActive or BuyingAmmoActive or BuyingSingleActive or AutoHealActive then
         abletodesync = false
@@ -6512,26 +6507,6 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
 	                    task.wait(0.1)
 	                end
                     fireclickdetector(ShopItem:FindFirstChildOfClass("ClickDetector"))
-                end
-            end
-            -- Auto Armor
-            if headshots.AutoArmor.Enabled and char.BodyEffects and char.BodyEffects.Armor and char.BodyEffects.Armor.Value < 100 then
-                local shop = game.Workspace.Ignored.Shop:FindFirstChild('[High-Medium Armor] - $2513')
-                if shop and shop:FindFirstChild("Head") then
-                    local oldArmor = char.BodyEffects.Armor.Value
-                    local SavedPosition = hrp.CFrame
-                    hrp.CFrame = shop.Head.CFrame
-	                local currentTool = char:FindFirstChildOfClass("Tool")
-	                if currentTool then
-	                    currentTool.Parent = plr.Backpack
-	                end
-                    fireclickdetector(shop:FindFirstChildOfClass("ClickDetector"))
-                    game:GetService("RunService"):BindToRenderStep("RestoreCFrame", 199, function()
-                        hrp.CFrame = SavedPosition
-                        game:GetService("RunService"):UnbindFromRenderStep("RestoreCFrame")
-                    end)
-                    if char.BodyEffects.Armor.Value > oldArmor then
-                    end
                 end
             end
         end)
@@ -6663,13 +6638,6 @@ AutoBuyGroup:AddDropdown('AutoLoadoutGun', {
     end
 })
 
-AutoBuyGroup:AddToggle('AutoArmor', {
-    Text = 'Auto Armor',
-    Default = false,
-    Callback = function(Value)
-        headshots.AutoArmor.Enabled = Value
-    end
-})
 getgenv().AutoHealEnabled = false
 getgenv().AutoHealThreshold = 100  -- Biến mới: Ngưỡng health để kích hoạt autoheal (default 50)
 getgenv().AutoArmorEnabled = false
