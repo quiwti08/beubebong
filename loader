@@ -6535,7 +6535,6 @@ RunService.Heartbeat:Connect(function(dt)
                 local targetHRP = Target.Character:FindFirstChild("HumanoidRootPart")
                 local targetHead = Target.Character:FindFirstChild("Head")
                 local SavedPosition = localPlayer.Character.HumanoidRootPart.CFrame
-                local AutoKillActive = true
                 if humanoidRootPart and head and toolHandle and targetHRP and targetHead then
                     if not KnockCheck(Target) then
                         if not Target.Character:FindFirstChild("ForceField") then
