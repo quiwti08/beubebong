@@ -5840,42 +5840,42 @@ RunService.Heartbeat:Connect(function(delta)
         DotCircle.Visible = false
     end
 end)
-local remote = ReplicatedStorage:FindFirstChild(CurrentGame.Remote)
-local function SetupSilentAim()
-    local char = LocalPlayer.Character
-    if not char then return end
-
-    for _, tool in pairs(char:GetChildren()) do
-        if tool:IsA("Tool") then
-            tool.Activated:Connect(function()
-                if not matchacc.TargetAim.Enabled or matchacc.TargetAim.Target == "None" or not CurrentGame then return end
-
-                local targetPlayer = Players:FindFirstChild(matchacc.TargetAim.Target)
-                if not targetPlayer or not targetPlayer.Character then return end
-
-                local hitPart = targetPlayer.Character:FindFirstChild(matchacc.TargetAim.HitPart)
-                if not hitPart then return end
-
-                -- Prediction giống trên
-                local predictVal = matchacc.TargetAim.Prediction
-                if matchacc.TargetAim.AutoPredict then
-                    if matchacc.TargetAim.PredictMode == "Ping" then
-                        predictVal = (game.Stats.Network.ServerStatsItem["Data Ping"]:GetValue() / 1000) + 0.035
-                    elseif matchacc.TargetAim.PredictMode == "Calculate" then
-                        predictVal = (hitPart.Position - Camera.CFrame.Position).Magnitude / 1000 + 0.13
-                    end
-                end
-
-                local predictedPos = hitPart.Position + hitPart.Velocity * predictVal
-
-                if remote then
-                    remote:FireServer(CurrentGame.Arg, predictedPos)
-                end
-            end)
-        end
-    end
-end
 if CurrentGame then
+	local remote = ReplicatedStorage:FindFirstChild(CurrentGame.Remote)
+	local function SetupSilentAim()
+	    local char = LocalPlayer.Character
+	    if not char then return end
+	
+	    for _, tool in pairs(char:GetChildren()) do
+	        if tool:IsA("Tool") then
+	            tool.Activated:Connect(function()
+	                if not matchacc.TargetAim.Enabled or matchacc.TargetAim.Target == "None" or not CurrentGame then return end
+	
+	                local targetPlayer = Players:FindFirstChild(matchacc.TargetAim.Target)
+	                if not targetPlayer or not targetPlayer.Character then return end
+	
+	                local hitPart = targetPlayer.Character:FindFirstChild(matchacc.TargetAim.HitPart)
+	                if not hitPart then return end
+	
+	                -- Prediction giống trên
+	                local predictVal = matchacc.TargetAim.Prediction
+	                if matchacc.TargetAim.AutoPredict then
+	                    if matchacc.TargetAim.PredictMode == "Ping" then
+	                        predictVal = (game.Stats.Network.ServerStatsItem["Data Ping"]:GetValue() / 1000) + 0.035
+	                    elseif matchacc.TargetAim.PredictMode == "Calculate" then
+	                        predictVal = (hitPart.Position - Camera.CFrame.Position).Magnitude / 1000 + 0.13
+	                    end
+	                end
+	
+	                local predictedPos = hitPart.Position + hitPart.Velocity * predictVal
+	
+	                if remote then
+	                    remote:FireServer(CurrentGame.Arg, predictedPos)
+	                end
+	            end)
+	        end
+	    end
+	end
 	LocalPlayer.CharacterAdded:Connect(function(char)
 	    char.ChildAdded:Connect(function(child)
 	        if child:IsA("Tool") then
@@ -5883,8 +5883,8 @@ if CurrentGame then
 	        end
 	    end)
 	end)
-end
 if LocalPlayer.Character then SetupSilentAim() end
+end
 if getnamecallmethod and not isMobile then
     local Meta = getrawmetatable(game)
     local backupindex = Meta.__index
