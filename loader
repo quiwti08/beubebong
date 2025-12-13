@@ -6513,7 +6513,7 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
     end
 end)
 RunService.Heartbeat:Connect(function(dt)
-    if matchacc.TargetAim.AutoKill and not (AutoKillActive or TargetAimActive or AutoArmorActive or AutoLoadoutActive or BuyingSingleActive or BuyingAmmoActive or AutoHealActive) then
+    if matchacc.TargetAim.AutoKill and not (TargetAimActive or AutoArmorActive or AutoLoadoutActive or BuyingSingleActive or BuyingAmmoActive or AutoHealActive) then
         local targetName = matchacc.TargetAim.Target -- Sử dụng target từ TargetAim
         if getgenv().lastTarget ~= targetName then
             -- Force restore vị trí khi target thay đổi để tránh stuck từ target cũ
@@ -6535,6 +6535,7 @@ RunService.Heartbeat:Connect(function(dt)
                 local targetHRP = Target.Character:FindFirstChild("HumanoidRootPart")
                 local targetHead = Target.Character:FindFirstChild("Head")
                 local SavedPosition = localPlayer.Character.HumanoidRootPart.CFrame
+                local AutoKillActive = true
                 if humanoidRootPart and head and toolHandle and targetHRP and targetHead then
                     if not KnockCheck(Target) then
                         if not Target.Character:FindFirstChild("ForceField") then
@@ -6583,11 +6584,11 @@ RunService.Heartbeat:Connect(function(dt)
                         end
                     end
                     humanoidRootPart.CFrame += Vector3.new(math.random(-9e9, 9e9), math.random(0,9e9), math.random(-9e9, 9e9))
-                    Library:Notify("Matcha.cc - Waiting.. Equip your gun while using 'Auto Kill Target'.", 1)
 					RunService:BindToRenderStep("RestoreCFrame", 199, function()
 						humanoidRootPart.CFrame = SavedPosition
 						RunService:UnbindFromRenderStep("RestoreCFrame")
 					end)
+                    Library:Notify("Matcha.cc - Waiting.. Equip your gun while using 'Auto Kill Target'.", 1)
                 end
             end
         end
