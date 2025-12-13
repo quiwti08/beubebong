@@ -128,7 +128,6 @@ local function setupCommands(player)
                     forceSay(sayMsg)
                 end
             end
-        end
         elseif msg == "/dropcash ." then
             dropCash()
         end
