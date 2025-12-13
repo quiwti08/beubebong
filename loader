@@ -4,7 +4,9 @@ local isDaHood = (game.PlaceId == 2788229376)
 if not game:IsLoaded() then 
     game.Loaded:Wait()
 end
+if getnamecallmethod then
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Pixeluted/adoniscries/main/Source.lua",true))()
+end
 --[[if game.GameId ~= 17625359962 then
 
 
