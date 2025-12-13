@@ -1,9 +1,10 @@
 loadstring(game:HttpGet('https://raw.githubusercontent.com/quiwti08/beubebong/refs/heads/main/keysys'))()
-
+local isDaHood = (game.PlaceId == 2788229376)
 
 if not game:IsLoaded() then 
     game.Loaded:Wait()
 end
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Pixeluted/adoniscries/main/Source.lua",true))()
 --[[if game.GameId ~= 17625359962 then
 
 
@@ -108,6 +109,7 @@ local success, err = pcall(function()
 end)
 end]]
 coroutine.wrap(function()
+if isDaHood then
 if not syn or not protectgui then
     getgenv().protectgui = function() end
 end
@@ -202,6 +204,7 @@ if not success then
     warn("[Anti-RemoteBlock] Executor not support hook metatable (__namecall). Skipped.")
 end
 warn("[+] Matcha.cc : anticheat bypassed.")
+end
 end)()
 
 local repo = 'https://raw.githubusercontent.com/quiwti08/beubebong/refs/heads/main/'
@@ -216,7 +219,6 @@ Library.ShowToggleFrameInKeybinds = true
 Library.ShowCustomCursor = true
 Library.NotifySide = "Right"
 local TextChatService = game:GetService("TextChatService")
-local isDaHood = (game.PlaceId == 2788229376)
 local chatWindow = TextChatService:FindFirstChild("ChatWindowConfiguration")
 local ChatEnabled = true
 if ChatEnabled and chatWindow then
