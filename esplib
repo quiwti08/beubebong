@@ -2,8 +2,11 @@ local playersService = game:GetService("Players")
 local workspaceService = game:GetService("Workspace")
 local runService = game:GetService("RunService")
 local userInputService = game:GetService("UserInputService")
+local coreGui = game:GetService("CoreGui")
+
 local espModule = {}
 espModule.__index = espModule
+
 espModule.Config = {
     TeamCheck = true,
     ESPDistance = 325,
@@ -14,7 +17,13 @@ espModule.Config = {
     TracerColor = Color3.new(0.403922, 0.34902, 0.701961),
     ChamsFillTransparency = 0.5,
     ChamsOutlineColor = Color3.new(1, 1, 1),
+    HealthBarColor = Color3.fromRGB(0, 255, 0),  -- Màu mặc định cho health bar
+    BoxTransparency = 0.65,  -- Độ trong suốt cho box
+    TextFont = "Arial",  -- Font cho text (có thể thay bằng custom font nếu cần)
+    TextSize = 12,
+    GradientEnabled = true  -- Bật gradient cho box và health bar để đẹp hơn
 }
+
 espModule.State = {
     BoxEnabled = false,
     NameEnabled = false,
@@ -25,64 +34,135 @@ espModule.State = {
     TracerEnabled = false,
     ChamsEnabled = false
 }
+
 espModule.Caches = {
     BoxCache = {},
     SkeletonCache = {},
-    HealthCache = {},
+    HealthCache = {},  -- Cache riêng cho health (text + bar)
     TracerCache = {},
     ChamsCache = {}
 }
+
 local localPlayer = playersService.LocalPlayer
 local currentCamera = workspaceService.CurrentCamera
 local updateInterval = 30
 local heartbeatConnection = nil
 local renderConnection = nil
+local screenGui = Instance.new("ScreenGui")  -- ScreenGui để chứa UI elements
+screenGui.Parent = coreGui
+screenGui.Name = "ZixyESP_GUI"
+screenGui.IgnoreGuiInset = true
+
 local function safeCall(callback)
     local success, errorMessage = pcall(callback)
     if not success then
         warn("ZixyESP Error: " .. tostring(errorMessage))
     end
 end
-function espModule.CreateBox(self, _)
-    local boxDrawings = {
-        Box = Drawing.new("Square"),
-        Name = Drawing.new("Text"),
-        Distance = Drawing.new("Text"),
-        HealthText = Drawing.new("Text"),
-        HealthBarBackground = Drawing.new("Square"),
-        HealthBar = Drawing.new("Square")
+
+-- Tạo box giống script gốc (Frame + UIStroke + Inline)
+function espModule.CreateBox(self, targetPlayer)
+    local boxContainer = Instance.new("Frame")
+    boxContainer.Parent = screenGui
+    boxContainer.BackgroundTransparency = 1
+    boxContainer.Name = targetPlayer.Name .. "_BoxContainer"
+
+    -- Main box frame
+    local mainBox = Instance.new("Frame", boxContainer)
+    mainBox.BackgroundColor3 = self.Config.BoxColor
+    mainBox.BackgroundTransparency = self.Config.BoxTransparency
+    mainBox.Visible = false
+
+    -- Outline
+    local outline = Instance.new("UIStroke", mainBox)
+    outline.Thickness = 1
+    outline.Color = Color3.fromRGB(0, 0, 0)
+    outline.Transparency = 0
+
+    -- Inline (giống script gốc)
+    local inline = Instance.new("Frame", mainBox)
+    inline.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    inline.Size = UDim2.new(1, -2, 1, -2)
+    inline.Position = UDim2.new(0, 1, 0, 1)
+    inline.BackgroundTransparency = 0
+    inline.Visible = true
+
+    local inlineOutline = Instance.new("UIStroke", inline)
+    inlineOutline.Thickness = 1
+    inlineOutline.Color = Color3.fromRGB(255, 255, 255)
+    inlineOutline.Transparency = 0
+
+    -- Gradient nếu bật
+    if self.Config.GradientEnabled then
+        local gradient = Instance.new("UIGradient", mainBox)
+        gradient.Color = ColorSequence.new(Color3.fromRGB(211, 211, 211), Color3.fromRGB(0, 0, 0))
+        gradient.Rotation = 90
+    end
+
+    return {
+        Container = boxContainer,
+        Main = mainBox,
+        Inline = inline,
+        Name = nil,  -- Sẽ thêm sau nếu cần
+        Distance = nil
     }
-    boxDrawings.Box.Thickness = 1
-    boxDrawings.Box.Color = self.Config.BoxColor
-    boxDrawings.Box.Filled = false
-    boxDrawings.Box.Visible = false
-    boxDrawings.Name.Size = 16
-    boxDrawings.Name.Color = Color3.new(1, 1, 1)
-    boxDrawings.Name.Outline = true
-    boxDrawings.Name.Center = true
-    boxDrawings.Name.Visible = false
-    boxDrawings.Distance.Size = 16
-    boxDrawings.Distance.Color = Color3.new(1, 1, 1)
-    boxDrawings.Distance.Outline = true
-    boxDrawings.Distance.Center = true
-    boxDrawings.Distance.Visible = false
-    boxDrawings.HealthText.Size = 16
-    boxDrawings.HealthText.Color = Color3.new(1, 1, 1)
-    boxDrawings.HealthText.Outline = true
-    boxDrawings.HealthText.Center = true
-    boxDrawings.HealthText.Visible = false
-    boxDrawings.HealthBarBackground.Size = Vector2.new(5, 50)
-    boxDrawings.HealthBarBackground.Color = Color3.new(0, 0, 0)
-    boxDrawings.HealthBarBackground.Filled = true
-    boxDrawings.HealthBarBackground.Transparency = 0.5
-    boxDrawings.HealthBarBackground.Visible = false
-    boxDrawings.HealthBar.Size = Vector2.new(5, 50)
-    boxDrawings.HealthBar.Color = Color3.new(0, 1, 0)
-    boxDrawings.HealthBar.Filled = true
-    boxDrawings.HealthBar.Visible = false
-    return boxDrawings
 end
+
+-- Tạo health text giống script (TextLabel + TextStroke)
+function espModule.CreateHealthText(self, targetPlayer)
+    local healthText = Instance.new("TextLabel", screenGui)
+    healthText.BackgroundTransparency = 1
+    healthText.TextColor3 = Color3.fromRGB(0, 255, 0)
+    healthText.TextStrokeTransparency = 0
+    healthText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    healthText.Font = Enum.Font[self.Config.TextFont]
+    healthText.TextSize = self.Config.TextSize
+    healthText.Visible = false
+    healthText.Name = targetPlayer.Name .. "_HealthText"
+    return healthText
+end
+
+-- Tạo health bar giống script (Frame + UIStroke + Background)
+function espModule.CreateHealthBar(self, targetPlayer)
+    local healthBarContainer = Instance.new("Frame", screenGui)
+    healthBarContainer.BackgroundTransparency = 1
+    healthBarContainer.Name = targetPlayer.Name .. "_HealthBarContainer"
+
+    -- Background
+    local bg = Instance.new("Frame", healthBarContainer)
+    bg.BackgroundColor3 = Color3.fromRGB(21, 21, 21)
+    bg.BackgroundTransparency = 0.45
+    bg.Visible = false
+
+    -- Main bar
+    local bar = Instance.new("Frame", healthBarContainer)
+    bar.BackgroundColor3 = self.Config.HealthBarColor
+    bar.BackgroundTransparency = 0
+    bar.Visible = false
+
+    -- Outline cho bar
+    local barOutline = Instance.new("UIStroke", bar)
+    barOutline.Thickness = 1
+    barOutline.Color = Color3.fromRGB(0, 0, 0)
+    barOutline.Transparency = 0
+
+    -- Gradient nếu bật
+    if self.Config.GradientEnabled then
+        local gradient = Instance.new("UIGradient", bar)
+        gradient.Color = ColorSequence.new(Color3.fromRGB(2, 255, 40), Color3.fromRGB(0, 101, 15))
+        gradient.Rotation = 90
+    end
+
+    return {
+        Container = healthBarContainer,
+        BG = bg,
+        Bar = bar
+    }
+end
+
+-- Các function khác giữ nguyên (Skeleton, Tracer, Chams)
 function espModule.CreateSkeleton(self, targetPlayer)
+    -- Giữ nguyên như cũ
     local targetCharacter = targetPlayer.Character
     local isR6 = targetCharacter and targetCharacter:FindFirstChild("Torso")
     if isR6 then
@@ -122,14 +202,18 @@ function espModule.CreateSkeleton(self, targetPlayer)
     end
     return skeletonLines
 end
+
 function espModule.CreateTracer(self, _)
+    -- Giữ nguyên
     local tracerLine = Drawing.new("Line")
     tracerLine.Thickness = 1
     tracerLine.Color = self.Config.TracerColor
     tracerLine.Visible = false
     return tracerLine
 end
+
 function espModule.CreateChams(self, targetPlayer)
+    -- Giữ nguyên
     local highlight = Instance.new("Highlight")
     highlight.FillColor = self.Config.ChamsColor
     highlight.OutlineColor = self.Config.ChamsOutlineColor
@@ -140,58 +224,48 @@ function espModule.CreateChams(self, targetPlayer)
     highlight.Adornee = targetPlayer.Character
     return highlight
 end
+
+-- Clear functions cập nhật cho UI
 function espModule.ClearBox(self, targetPlayer)
     if self.Caches.BoxCache[targetPlayer] then
-        self.Caches.BoxCache[targetPlayer].Box:Remove()
-        self.Caches.BoxCache[targetPlayer].Name:Remove()
-        self.Caches.BoxCache[targetPlayer].Distance:Remove()
-        self.Caches.BoxCache[targetPlayer].HealthText:Remove()
-        self.Caches.BoxCache[targetPlayer].HealthBarBackground:Remove()
-        self.Caches.BoxCache[targetPlayer].HealthBar:Remove()
+        self.Caches.BoxCache[targetPlayer].Container:Destroy()
         self.Caches.BoxCache[targetPlayer] = nil
     end
 end
-function espModule.ClearSkeleton(self, targetPlayer)
-    if self.Caches.SkeletonCache[targetPlayer] then
-        for _, line in pairs(self.Caches.SkeletonCache[targetPlayer]) do
-            line:Remove()
-        end
-        self.Caches.SkeletonCache[targetPlayer] = nil
+
+function espModule.ClearHealthText(self, targetPlayer)
+    if self.Caches.HealthCache[targetPlayer] and self.Caches.HealthCache[targetPlayer].Text then
+        self.Caches.HealthCache[targetPlayer].Text:Destroy()
     end
 end
-function espModule.ClearTracer(self, targetPlayer)
-    if self.Caches.TracerCache[targetPlayer] then
-        self.Caches.TracerCache[targetPlayer]:Remove()
-        self.Caches.TracerCache[targetPlayer] = nil
+
+function espModule.ClearHealthBar(self, targetPlayer)
+    if self.Caches.HealthCache[targetPlayer] and self.Caches.HealthCache[targetPlayer].BarContainer then
+        self.Caches.HealthCache[targetPlayer].BarContainer:Destroy()
     end
 end
-function espModule.ClearChams(self, targetPlayer)
-    if self.Caches.ChamsCache[targetPlayer] then
-        self.Caches.ChamsCache[targetPlayer]:Destroy()
-        self.Caches.ChamsCache[targetPlayer] = nil
-    end
-end
+
+-- Update Box (giống script gốc)
 function espModule.UpdateBox(self)
-    if self.State.BoxEnabled or (self.State.NameEnabled or (self.State.DistanceEnabled or (self.State.HealthTextEnabled or self.State.HealthBarEnabled))) then
+    if self.State.BoxEnabled or self.State.NameEnabled or self.State.DistanceEnabled then
         if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
             local localRoot = localPlayer.Character.HumanoidRootPart
-            local allPlayers = playersService
-            for _, otherPlayer in ipairs(allPlayers:GetPlayers()) do
+            for _, otherPlayer in ipairs(playersService:GetPlayers()) do
                 if otherPlayer ~= localPlayer then
-                    if otherPlayer.Character and (otherPlayer.Character:FindFirstChild("HumanoidRootPart") and otherPlayer.Character:FindFirstChild("Humanoid")) then
+                    if otherPlayer.Character and otherPlayer.Character:FindFirstChild("HumanoidRootPart") and otherPlayer.Character:FindFirstChild("Humanoid") then
                         local otherCharacter = otherPlayer.Character
                         local otherHumanoid = otherCharacter.Humanoid
                         if otherHumanoid.Health > 0 then
                             local otherRoot = otherCharacter.HumanoidRootPart
                             local distance = (localRoot.Position - otherRoot.Position).Magnitude
                             if self.Config.ESPDistance >= distance then
-                                if self.Config.TeamCheck and (localPlayer.Team and otherPlayer.Team == localPlayer.Team) then
+                                if self.Config.TeamCheck and localPlayer.Team and otherPlayer.Team == localPlayer.Team then
                                     self:ClearBox(otherPlayer)
                                 else
                                     if not self.Caches.BoxCache[otherPlayer] then
                                         self.Caches.BoxCache[otherPlayer] = self:CreateBox(otherPlayer)
                                     end
-                                    local boxDrawings = self.Caches.BoxCache[otherPlayer]
+                                    local boxElements = self.Caches.BoxCache[otherPlayer]
                                     local rootScreenPos, rootOnScreen = currentCamera:WorldToViewportPoint(otherRoot.Position)
                                     if rootOnScreen then
                                         local headPart = otherCharacter:FindFirstChild("Head")
@@ -199,47 +273,12 @@ function espModule.UpdateBox(self)
                                         local feetScreenPos = currentCamera:WorldToViewportPoint(otherRoot.Position - Vector3.new(0, 3, 0))
                                         local height = math.abs(headTopScreenPos.Y - feetScreenPos.Y)
                                         local width = height * 0.66
-                                        local centerPos = Vector2.new(rootScreenPos.X, (headTopScreenPos.Y + feetScreenPos.Y) / 2)
-                                        boxDrawings.Box.Size = Vector2.new(width, height)
-                                        boxDrawings.Box.Position = centerPos - Vector2.new(width / 2, height / 2)
-                                        boxDrawings.Box.Visible = self.State.BoxEnabled
-                                        boxDrawings.Name.Text = otherPlayer.Name
-                                        boxDrawings.Name.Position = Vector2.new(rootScreenPos.X, headTopScreenPos.Y - 20)
-                                        boxDrawings.Name.Visible = self.State.NameEnabled
-                                        boxDrawings.Distance.Text = tostring(math.floor(distance)) .. " studs"
-                                        boxDrawings.Distance.Position = Vector2.new(rootScreenPos.X, feetScreenPos.Y + 5)
-                                        boxDrawings.Distance.Visible = self.State.DistanceEnabled
-                                        if self.State.HealthTextEnabled then
-                                            local healthPercent = otherHumanoid.Health / otherHumanoid.MaxHealth
-                                            boxDrawings.HealthText.Text = "Health: " .. tostring(math.floor(healthPercent * 100)) .. "%"
-                                            boxDrawings.HealthText.Position = Vector2.new(rootScreenPos.X, headTopScreenPos.Y - 40)
-                                            boxDrawings.HealthText.Visible = true
-                                        else
-                                            boxDrawings.HealthText.Visible = false
-                                        end
-                                        if self.State.HealthBarEnabled then
-                                            local healthPercent = otherHumanoid.Health / otherHumanoid.MaxHealth
-                                            local barWidth = 5
-                                            local barX = centerPos.X - width / 2 - 10
-                                            local barY = centerPos.Y - height / 2
-                                            boxDrawings.HealthBarBackground.Position = Vector2.new(barX, barY)
-                                            boxDrawings.HealthBarBackground.Size = Vector2.new(barWidth, height)
-                                            boxDrawings.HealthBarBackground.Visible = true
-                                            boxDrawings.HealthBar.Position = Vector2.new(barX, barY + height * (1 - healthPercent))
-                                            boxDrawings.HealthBar.Size = Vector2.new(barWidth, height * healthPercent)
-                                            boxDrawings.HealthBar.Color = Color3.new(1 - healthPercent, healthPercent, 0)
-                                            boxDrawings.HealthBar.Visible = true
-                                        else
-                                            boxDrawings.HealthBarBackground.Visible = false
-                                            boxDrawings.HealthBar.Visible = false
-                                        end
+                                        local centerPos = UDim2.new(0, rootScreenPos.X - width / 2, 0, (headTopScreenPos.Y + feetScreenPos.Y) / 2 - height / 2)
+                                        boxElements.Main.Size = UDim2.new(0, width, 0, height)
+                                        boxElements.Main.Position = centerPos
+                                        boxElements.Main.Visible = self.State.BoxEnabled
                                     else
-                                        boxDrawings.Box.Visible = false
-                                        boxDrawings.Name.Visible = false
-                                        boxDrawings.Distance.Visible = false
-                                        boxDrawings.HealthText.Visible = false
-                                        boxDrawings.HealthBarBackground.Visible = false
-                                        boxDrawings.HealthBar.Visible = false
+                                        boxElements.Main.Visible = false
                                     end
                                 end
                             else
@@ -262,7 +301,98 @@ function espModule.UpdateBox(self)
         for player, _ in pairs(self.Caches.BoxCache) do
             self:ClearBox(player)
         end
-        return
+    end
+end
+function espModule.UpdateHealth(self)
+    if self.State.HealthTextEnabled or self.State.HealthBarEnabled then
+        if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local localRoot = localPlayer.Character.HumanoidRootPart
+            for _, otherPlayer in ipairs(playersService:GetPlayers()) do
+                if otherPlayer ~= localPlayer then
+                    if otherPlayer.Character and otherPlayer.Character:FindFirstChild("HumanoidRootPart") and otherPlayer.Character:FindFirstChild("Humanoid") then
+                        local otherCharacter = otherPlayer.Character
+                        local otherHumanoid = otherCharacter.Humanoid
+                        if otherHumanoid.Health > 0 then
+                            local otherRoot = otherCharacter.HumanoidRootPart
+                            local distance = (localRoot.Position - otherRoot.Position).Magnitude
+                            if self.Config.ESPDistance >= distance then
+                                if self.Config.TeamCheck and localPlayer.Team and otherPlayer.Team == localPlayer.Team then
+                                    self:ClearHealthText(otherPlayer)
+                                    self:ClearHealthBar(otherPlayer)
+                                else
+                                    if not self.Caches.HealthCache[otherPlayer] then
+                                        self.Caches.HealthCache[otherPlayer] = {}
+                                        if self.State.HealthTextEnabled then
+                                            self.Caches.HealthCache[otherPlayer].Text = self:CreateHealthText(otherPlayer)
+                                        end
+                                        if self.State.HealthBarEnabled then
+                                            self.Caches.HealthCache[otherPlayer].Bar = self:CreateHealthBar(otherPlayer)
+                                        end
+                                    end
+                                    local rootScreenPos, rootOnScreen = currentCamera:WorldToViewportPoint(otherRoot.Position)
+                                    if rootOnScreen then
+                                        local headPart = otherCharacter:FindFirstChild("Head")
+                                        local headTopScreenPos = headPart and currentCamera:WorldToViewportPoint(headPart.Position + Vector3.new(0, 1, 0)) or currentCamera:WorldToViewportPoint(otherRoot.Position + Vector3.new(0, 3, 0))
+                                        local feetScreenPos = currentCamera:WorldToViewportPoint(otherRoot.Position - Vector3.new(0, 3, 0))
+                                        local height = math.abs(headTopScreenPos.Y - feetScreenPos.Y)
+                                        local width = height * 0.66
+                                        local centerPos = Vector2.new(rootScreenPos.X, (headTopScreenPos.Y + feetScreenPos.Y) / 2)
+                                        local healthPercent = otherHumanoid.Health / otherHumanoid.MaxHealth
+                                        if self.State.HealthTextEnabled then
+                                            local healthText = self.Caches.HealthCache[otherPlayer].Text
+                                            healthText.Text = tostring(math.floor(healthPercent * 100))
+                                            healthText.Position = UDim2.new(0, centerPos.X - width / 2 - 20, 0, centerPos.Y - height / 2 + height * (1 - healthPercent) + 3)
+                                            healthText.TextColor3 = Color3.fromRGB(0, 255, 0)  -- Giống script
+                                            healthText.Visible = true
+                                        end
+                                        if self.State.HealthBarEnabled then
+                                            local healthBar = self.Caches.HealthCache[otherPlayer].Bar
+                                            healthBar.BG.Size = UDim2.new(0, 4, 0, height)
+                                            healthBar.BG.Position = UDim2.new(0, centerPos.X - width / 2 - 6, 0, centerPos.Y - height / 2)
+                                            healthBar.BG.Visible = true
+                                            healthBar.Bar.Size = UDim2.new(0, 4, 0, height * healthPercent)
+                                            healthBar.Bar.Position = UDim2.new(0, centerPos.X - width / 2 - 6, 0, centerPos.Y - height / 2 + height * (1 - healthPercent))
+                                            healthBar.Bar.BackgroundColor3 = healthPercent >= 0.75 and Color3.fromRGB(0, 255, 0) or
+                                                                            healthPercent >= 0.5 and Color3.fromRGB(255, 255, 0) or
+                                                                            healthPercent >= 0.25 and Color3.fromRGB(255, 170, 0) or
+                                                                            Color3.fromRGB(255, 0, 0)  -- Màu thay đổi giống script
+                                            healthBar.Bar.Visible = true
+                                        end
+                                    else
+                                        if self.State.HealthTextEnabled then
+                                            self.Caches.HealthCache[otherPlayer].Text.Visible = false
+                                        end
+                                        if self.State.HealthBarEnabled then
+                                            self.Caches.HealthCache[otherPlayer].Bar.BG.Visible = false
+                                            self.Caches.HealthCache[otherPlayer].Bar.Bar.Visible = false
+                                        end
+                                    end
+                                end
+                            else
+                                self:ClearHealthText(otherPlayer)
+                                self:ClearHealthBar(otherPlayer)
+                            end
+                        else
+                            self:ClearHealthText(otherPlayer)
+                            self:ClearHealthBar(otherPlayer)
+                        end
+                    else
+                        self:ClearHealthText(otherPlayer)
+                        self:ClearHealthBar(otherPlayer)
+                    end
+                end
+            end
+        else
+            for player, _ in pairs(self.Caches.HealthCache) do
+                self:ClearHealthText(player)
+                self:ClearHealthBar(player)
+            end
+        end
+    else
+        for player, _ in pairs(self.Caches.HealthCache) do
+            self:ClearHealthText(player)
+            self:ClearHealthBar(player)
+        end
     end
 end
 function espModule.UpdateSkeleton(self)
@@ -711,10 +841,20 @@ function espModule.InitiateBox(self, newColor, enable)
     self.State.BoxEnabled = enable ~= false
     if newColor then
         self.Config.BoxColor = newColor
-        for _, drawings in pairs(self.Caches.BoxCache) do
-            drawings.Box.Color = newColor
+        for _, elements in pairs(self.Caches.BoxCache) do
+            elements.Main.BackgroundColor3 = newColor
         end
     end
+end
+function espModule.InitiateHealthBar(self, newColor, enable)
+    self.State.HealthBarEnabled = enable ~= false
+    if newColor then
+        self.Config.HealthBarColor = newColor
+    end
+end
+
+function espModule.InitiateHealthText(self, enable)
+    self.State.HealthTextEnabled = enable == true
 end
 function espModule.InitiateName(self, enable)
     self.State.NameEnabled = enable == true
@@ -804,6 +944,8 @@ function espModule.Initialize(self)
             self:ClearSkeleton(removedPlayer)
             self:ClearTracer(removedPlayer)
             self:ClearChams(removedPlayer)
+            self:ClearHealthBar(removedPlayer)
+            self:ClearHealthText(removedPlayer)
         end)
     end)
     playersService.PlayerAdded:Connect(function(addedPlayer)
@@ -815,6 +957,8 @@ function espModule.Initialize(self)
                         self:ClearSkeleton(addedPlayer)
                         self:ClearTracer(addedPlayer)
                         self:ClearChams(addedPlayer)
+                        self:ClearHealthBar(addedPlayer)
+                        self:ClearHealthText(addedPlayer)
                     end)
                 end
             end)
@@ -826,6 +970,8 @@ function espModule.Initialize(self)
                         self:ClearSkeleton(addedPlayer)
                         self:ClearTracer(addedPlayer)
                         self:ClearChams(addedPlayer)
+                        self:ClearHealthBar(addedPlayer)
+                        self:ClearHealthText(addedPlayer)
                     end)
                 end)
             end
@@ -841,6 +987,9 @@ function espModule.Initialize(self)
     renderConnection = runService.RenderStepped:Connect(function()
         safeCall(function()
             self:UpdateBox()
+        end)
+        safeCall(function()
+            self:UpdateHealth()
         end)
         safeCall(function()
             self:UpdateSkeleton()
