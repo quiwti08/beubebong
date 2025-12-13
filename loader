@@ -2957,8 +2957,12 @@ TriggerBox:AddToggle('TriggerbotEnabled', {
     Text = 'Enabled',
     Default = false,
     Callback = function(v) getgenv().Matcha.Legit.Triggerbot.Enabled = v end
+}):AddKeyPicker('TargetAimKey', {
+    Default = 'Q',
+    Text = 'Target Aim',
+    Mode = 'Toggle',
+    Callback = function(Value) getgenv().Matcha.Legit.Triggerbot.Enabled = Value end 
 })
-
 TriggerBox:AddToggle('TriggerbotOnlyTarget', {
     Text = 'Only Target',
     Default = false,
@@ -6090,6 +6094,7 @@ game:GetService("RunService").Stepped:Connect(function()
         end
     end
 end)
+local useDesync = matchacc.TargetAim.Strafe or matchacc.TargetAim.AutoStomp or matchacc.KillAura.StompAura or matchacc.TargetAim.AutoKill or headshots.AutoArmor.Enabled or headshots.AutoLoadout.Enabled or BuyingAmmo or BuyingSingle 
 RunService.Heartbeat:Connect(function(dt)
 	if getnamecallmethod and matchacc.RapidFire.Enabled then
 	    local tool = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Tool")
@@ -6106,7 +6111,6 @@ RunService.Heartbeat:Connect(function(dt)
 	    end
 	end
     local TargetPlayer = players:FindFirstChild(matchacc.TargetAim.Target)
-    local useDesync = matchacc.TargetAim.Strafe or matchacc.TargetAim.AutoStomp or matchacc.KillAura.StompAura 
     local hrp = localPlayer.Character:FindFirstChild("HumanoidRootPart")
     local Tool = localPlayer.Character:FindFirstChildOfClass("Tool")
     local SavedPosition = hrp.CFrame
@@ -6176,14 +6180,14 @@ RunService.Heartbeat:Connect(function(dt)
                     end)
                 end
             else
-                hrp.CFrame += Vector3.new(math.random(-100000,100000), math.random(0,100000), math.random(-100000,100000))
+                hrp.CFrame += Vector3.new(math.random(-9e9, 9e9), math.random(0, 9e9), math.random(-9e9, 9e9))
                 RunService:BindToRenderStep("RestoreRandom", 199, function()
                     hrp.CFrame = SavedPosition
                     RunService:UnbindFromRenderStep("RestoreRandom")
                 end)
             end
         elseif TargetPlayer.Character:FindFirstChild("ForceField") then
-            hrp.CFrame += Vector3.new(math.random(-100000,100000), math.random(0,100000), math.random(-100000,100000))
+            hrp.CFrame += Vector3.new(math.random(-9e9, 9e9), math.random(0, 9e9), math.random(-9e9, 9e9))
             RunService:BindToRenderStep("RestoreForceField", 199, function()
                 hrp.CFrame = SavedPosition
                 RunService:UnbindFromRenderStep("RestoreForceField")
@@ -6296,9 +6300,7 @@ RunService.Heartbeat:Connect(function(dt)
     local SavedPosition = hrp and hrp.CFrame
 
 
-    -- Desync logic (chỉ bật desync khi không mua đồ / không strafe)
-    local useDesync = matchacc.TargetAim.Strafe or matchacc.TargetAim.AutoStomp or matchacc.KillAura.StompAura
-    abletodesync = not (TargetAimActive or AutoArmorActive or AutoLoadoutActive or BuyingAmmoActive or BuyingSingleActive)
+    abletodesync = not (TargetAimActive or AutoArmorActive or AutoLoadoutActive or BuyingAmmoActive or BuyingSingleActive or AutokillActive)
 	if matchacc.TargetAim.Enabled and matchacc.TargetAim.Target ~= "None" then
 	    local TargetPlayer = players:FindFirstChild(matchacc.TargetAim.Target)
 	    if TargetPlayer and TargetPlayer.Character and TargetPlayer.Character:FindFirstChild("Humanoid") then
@@ -6512,7 +6514,7 @@ RunService.Heartbeat:Connect(function(dt)
                     RunService:UnbindFromRenderStep("RestoreStomp")
                 end)
             end
-        elseif matchacc.KillAura.StompAura and not (TargetAimActive or AutoArmorActive or AutoLoadoutActive or BuyingAmmoActive or BuyingSingleActive) then
+        elseif matchacc.KillAura.StompAura and not (TargetAimActive or AutoArmorActive or AutoLoadoutActive or BuyingAmmoActive or BuyingSingleActive or AutokillActive) then
             local shortestDistance = math.huge
             local stompTarget
             for _, player in pairs(players:GetPlayers()) do
@@ -6603,7 +6605,7 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
         AutoArmorActive = true
     end
     -- Checking for desync
-    if TargetAimActive or matchacc.TargetAim.AutoKill or AutoArmorActive or AutoLoadoutActive or BuyingAmmoActive or BuyingSingleActive then
+    if TargetAimActive or AutokillActive or AutoArmorActive or AutoLoadoutActive or BuyingAmmoActive or BuyingSingleActive then
         abletodesync = false
     else
         abletodesync = true
@@ -6703,6 +6705,7 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
         end)
     end
 end)
+local killpos = nil
 RunService.Heartbeat:Connect(function(dt)
     if matchacc.TargetAim.AutoKill and not (TargetAimActive or AutoArmorActive or AutoLoadoutActive or BuyingSingleActive or BuyingAmmoActive) then
         local targetName = matchacc.TargetAim.Target -- Sử dụng target từ TargetAim
@@ -6719,6 +6722,7 @@ RunService.Heartbeat:Connect(function(dt)
         if targetName ~= nil and targetName ~= "None" then -- Thêm check "None" để tránh target default
             local Target = players:FindFirstChild(targetName)
             if Target and Target.Character and localPlayer and localPlayer.Character then
+                AutokillActive = true
                 local humanoidRootPart = localPlayer.Character:FindFirstChild("HumanoidRootPart")
                 local head = localPlayer.Character:FindFirstChild("Head")
                 local tool = localPlayer.Character:FindFirstChildOfClass("Tool")
@@ -6733,14 +6737,14 @@ RunService.Heartbeat:Connect(function(dt)
                             Library:Notify("Matcha.cc - Shooting Target.", 1)
                             MainEvent:FireServer("ShootGun", toolHandle, toolHandle.Position, Target.Character.Head.Position, targetHead, Vector3.new(0, 1, 0))
                         else
-                            humanoidRootPart.CFrame += Vector3.new(math.random(-1000000,1000000), math.random(0,1000000), math.random(-1000000,1000000))
+                            humanoidRootPart.CFrame += Vector3.new(math.random(-9e9, 9e9), math.random(0,9e9), math.random(-9e9, 9e9))
                             Library:Notify("Matcha.cc - Waiting.. Target has spawn protection.", 1)
                             MainEvent:FireServer("Reload", tool)
                         end
-                        RunService:BindToRenderStep("RestoreCFrame", 199, function()
-                            humanoidRootPart.CFrame = SavedPosition
-                            RunService:UnbindFromRenderStep("RestoreCFrame")
-                        end)
+						RunService:BindToRenderStep("RestoreCFrame", 199, function()
+							humanoidRootPart.CFrame = SavedPosition
+							RunService:UnbindFromRenderStep("RestoreCFrame")
+						end)
                     else
                         -- Handle dead targets
                         local bodyEffects = Target.Character:FindFirstChild("BodyEffects")
@@ -6753,14 +6757,14 @@ RunService.Heartbeat:Connect(function(dt)
                             end
                         elseif isDead == true then
                             -- Move to safe position when target is dead
-                            humanoidRootPart.CFrame += Vector3.new(math.random(-1000000,1000000), math.random(0,1000000), math.random(-1000000,1000000))
+                            humanoidRootPart.CFrame += Vector3.new(math.random(-9e9, 9e9), math.random(0,9e9), math.random(-9e9, 9e9))
                             Library:Notify("Matcha.cc - Waiting.. Target is currently dead.", 1)
                             MainEvent:FireServer("Reload", tool)
                         end
-                        RunService:BindToRenderStep("RestoreCFrame", 199, function()
-                            humanoidRootPart.CFrame = SavedPosition
-                            RunService:UnbindFromRenderStep("RestoreCFrame")
-                        end)
+						RunService:BindToRenderStep("RestoreCFrame", 199, function()
+							humanoidRootPart.CFrame = SavedPosition
+							RunService:UnbindFromRenderStep("RestoreCFrame")
+						end)
                     end
                 else
 					equipAllGuns()  -- Gọi hàm equipAllGuns để cầm tất cả tool
@@ -6773,19 +6777,18 @@ RunService.Heartbeat:Connect(function(dt)
                             Library:Notify("Matcha.cc - Reloading " .. equippedTool.Name, 1)
                         end
                     end
-                    humanoidRootPart.CFrame += Vector3.new(math.random(-1000000,1000000), math.random(0,1000000), math.random(-1000000,1000000))
+                    humanoidRootPart.CFrame += Vector3.new(math.random(-9e9, 9e9), math.random(0,9e9), math.random(-9e9, 9e9))
                     Library:Notify("Matcha.cc - Waiting.. Equip your gun while using 'Auto Kill Target'.", 1)
-                    RunService:BindToRenderStep("RestoreCFrame", 199, function()
-                        humanoidRootPart.CFrame = SavedPosition
-                        RunService:UnbindFromRenderStep("RestoreCFrame")
-                    end)
+					RunService:BindToRenderStep("RestoreCFrame", 199, function()
+						humanoidRootPart.CFrame = SavedPosition
+						RunService:UnbindFromRenderStep("RestoreCFrame")
+					end)
                 end
             end
         end
     end
 end)
 if isDaHood then 
-
 
 -- UI Setup (sửa để phù hợp với lib của bạn, giả sử sử dụng Tabs.Misc:AddLeftGroupbox('AutoBuy'))
 local AutoBuyGroup = Tabs.Misc:AddLeftGroupbox('AutoBuy')
@@ -7253,7 +7256,7 @@ GlowLight.Parent = BodyCloneDesync.HumanoidRootPart
 
 -- Desync Line
 local DesyncLine = Drawing.new("Line")
-DesyncLine.Thickness = 1
+DesyncLine.Thickness = 2
 DesyncLine.Color = Color3.fromRGB(0, 255, 0)
 DesyncLine.Visible = false
 DesyncLine.Transparency = 1
@@ -7293,9 +7296,9 @@ desync_setback.CanCollide = false
 desync_setback.Anchored = true
 desync_setback.Transparency = 1
 desync_setback.Parent = workspace
--- Desync Logic in Heartbeat
-NewConnection(RunService.Heartbeat, function()
-    if not matchacc.Desync.Enabled or not LocalPlayer.Character or not BodyCloneDesync then
+
+RunService.Heartbeat:Connect(function()
+    if not LocalPlayer.Character then
         BodyCloneDesync:SetPrimaryPartCFrame(CFrame.new(9999, 9999, 9999))
         BodyCloneDesyncHighlight.Enabled = false
         DesyncLine.Visible = false
@@ -7305,85 +7308,98 @@ NewConnection(RunService.Heartbeat, function()
     end
 
     local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    local lowerTorso = LocalPlayer.Character:FindFirstChild("LowerTorso") -- For Da Hood desync
-    if not hrp or not lowerTorso then
+    local lowerTorso = LocalPlayer.Character:FindFirstChild("LowerTorso")  -- For Da Hood desync
+    if not hrp then
         DesyncDot.Visible = false
         return
     end
 
-    local oldCFrame = hrp.CFrame
-    local desyncCFrame = oldCFrame
+    local oldCFrame = hrp.CFrame  -- Lưu CFrame đầy đủ (position + rotation)
+    local desyncCFrame = oldCFrame  -- Default là giống hrp nếu không desync
 
-	if matchacc.Desync.Mode == "Destroy Cheaters" then
-	    desyncCFrame = CFrame.new(9e9, 1, 1)
-	elseif matchacc.Desync.Mode == "Underground" then
-	    desyncCFrame = CFrame.new(hrp.Position - Vector3.new(0, 12, 0))
-	elseif matchacc.Desync.Mode == "Void Spam" then
-	    desyncCFrame = math.random(1,2) == 1 and oldCFrame or CFrame.new(math.random(10000,50000), math.random(10000,50000), math.random(10000,50000))
-	elseif matchacc.Desync.Mode == "Void" then
-	    desyncCFrame = oldCFrame + Vector3.new(math.random(-444444,444444), math.random(-444444,444444), math.random(-44444,44444))
-	elseif matchacc.Desync.Mode == "Random" then
-	    local amount = matchacc.Desync.RandomAmount
-	    local offset = Vector3.new(
-	        math.random(-amount, amount),
-	        math.random(-amount/2, amount/2),
-	        math.random(-amount, amount)
-	    )
-	    desyncCFrame = CFrame.new(oldCFrame.Position + offset)
-	elseif matchacc.Desync.Mode == "Safe Shoot" then
-	    desyncCFrame = CFrame.new(hrp.Position - Vector3.new(0, 5, 0)) * CFrame.Angles(math.random(0, 360), math.random(0, 360), math.rad(180))
-	elseif matchacc.Desync.Mode == "Custom" then
-	    desyncCFrame = CFrame.new(hrp.Position - Vector3.new(matchacc.Desync.CustomX, matchacc.Desync.CustomY, matchacc.Desync.CustomZ))
+    -- Logic Desync (giữ nguyên như cũ, chỉ áp dụng nếu Enabled)
+    if matchacc.Desync.Enabled then
+        if matchacc.Desync.Mode == "Destroy Cheaters" then
+            desyncCFrame = CFrame.new(9e9, 1, 1) * oldCFrame.Rotation  -- Giữ rotation
+        elseif matchacc.Desync.Mode == "Underground" then
+            desyncCFrame = CFrame.new(hrp.Position - Vector3.new(0, 12, 0)) * oldCFrame.Rotation
+        elseif matchacc.Desync.Mode == "Void Spam" then
+            desyncCFrame = math.random(1,2) == 1 and oldCFrame or CFrame.new(math.random(10000,50000), math.random(10000,50000), math.random(10000,50000)) * oldCFrame.Rotation
+        elseif matchacc.Desync.Mode == "Void" then
+            desyncCFrame = oldCFrame + Vector3.new(math.random(-444444,444444), math.random(-444444,444444), math.random(-44444,44444))
+            desyncCFrame = desyncCFrame * oldCFrame.Rotation  -- Giữ rotation
+        elseif matchacc.Desync.Mode == "Random" then
+            local amount = matchacc.Desync.RandomAmount
+            local offset = Vector3.new(math.random(-amount, amount), math.random(-amount/2, amount/2), math.random(-amount, amount))
+            desyncCFrame = CFrame.new(oldCFrame.Position + offset) * oldCFrame.Rotation
+        elseif matchacc.Desync.Mode == "Safe Shoot" then
+            desyncCFrame = CFrame.new(hrp.Position - Vector3.new(0, 5, 0)) * CFrame.Angles(math.random(0, 360), math.random(0, 360), math.rad(180))
+        elseif matchacc.Desync.Mode == "Custom" then
+            desyncCFrame = CFrame.new(hrp.Position - Vector3.new(matchacc.Desync.CustomX, matchacc.Desync.CustomY, matchacc.Desync.CustomZ)) * oldCFrame.Rotation
+        end
+
+        -- Apply Desync (giữ nguyên)
+        hrp.CFrame = desyncCFrame
+        if not matchacc.TargetAim.SpectateTarget then
+            Camera.CameraSubject = desync_setback
+        end
+        RunService.RenderStepped:Wait()
+        desync_setback.CFrame = oldCFrame * CFrame.new(0, hrp.Size.Y/2 + 0.5, 0)
+        hrp.CFrame = oldCFrame
+    end
+
+	local visualizePosition = hrp.Position  -- mặc định dùng vị trí thật
+	local visualizeCFrame = hrp.CFrame      -- mặc định dùng CFrame thật (có rotation)
+	
+	if matchacc.Desync.Enabled then
+	    visualizeCFrame = desyncCFrame
+	elseif matchacc.TargetAim.AutoKill then
+	    visualizeCFrame = killpos
+	else
+	    visualizeCFrame = hrp.CFrame
+	end
+	
+	if matchacc.Desync.Visualize then
+	    BodyCloneDesync:SetPrimaryPartCFrame(visualizeCFrame)
+	    BodyCloneDesyncHighlight.Enabled = true
+	else
+	    BodyCloneDesyncHighlight.Enabled = false
+	    BodyCloneDesync:SetPrimaryPartCFrame(CFrame.new(9999, 9999, 9999))
+	end
+	
+	-- Line: Từ mouse đến vị trí visualize (có thể là real / desync / saved)
+	if matchacc.Desync.Line then
+	    local targetPosition = visualizeCFrame.Position 
+	    local screenRoot, onScreenRoot = Camera:WorldToViewportPoint(targetPosition)
+	    local mouseLocation = UserInputService:GetMouseLocation()
+	
+	    if onScreenRoot then
+	        DesyncLine.From = mouseLocation
+	        DesyncLine.To = Vector2.new(screenRoot.X, screenRoot.Y)
+	        DesyncLine.Color = BodyCloneDesyncHighlight.FillColor or Color3.fromRGB(255, 255, 255)
+	        DesyncLine.Visible = true
+	    else
+	        DesyncLine.Visible = false
+	    end
+	else
+	    DesyncLine.Visible = false
+	end
+	
+	-- Dot: Hiển thị ở vị trí visualize (real / desync / saved)
+	if matchacc.Desync.Dot then
+	    local targetPosition = visualizeCFrame.Position
+	    local screenPos, onScreen = Camera:WorldToViewportPoint(targetPosition)
+	
+	    if onScreen then
+	        DesyncDot.Position = Vector2.new(screenPos.X, screenPos.Y)
+	        DesyncDot.Visible = true
+	    else
+	        DesyncDot.Visible = false
+	    end
+	else
+	    DesyncDot.Visible = false
 	end
 
-    -- Apply Desync
-    hrp.CFrame = desyncCFrame
-    Camera.CameraSubject = desync_setback
-    RunService.RenderStepped:Wait()
-    desync_setback.CFrame = oldCFrame * CFrame.new(0, hrp.Size.Y/2 + 0.5, 0) -- Adjust lower body
-    hrp.CFrame = oldCFrame
-
-    -- Visualize
-    if matchacc.Desync.Visualize then
-        BodyCloneDesync:SetPrimaryPartCFrame(desyncCFrame)
-        BodyCloneDesyncHighlight.Enabled = true
-    else
-        BodyCloneDesyncHighlight.Enabled = false
-        BodyCloneDesync:SetPrimaryPartCFrame(CFrame.new(9999, 9999, 9999))
-    end
-
-    -- Line
-    if matchacc.Desync.Line and matchacc.Desync.Visualize then
-        local rootPos = hrp.Position
-        local clonePos = BodyCloneDesync.HumanoidRootPart.Position
-        local screen1, onScreen1 = Camera:WorldToViewportPoint(rootPos)
-        local screen2, onScreen2 = Camera:WorldToViewportPoint(clonePos)
-        if onScreen1 and onScreen2 then
-            DesyncLine.From = Vector2.new(screen1.X, screen1.Y)
-            DesyncLine.To = Vector2.new(screen2.X, screen2.Y)
-            DesyncLine.Color = BodyCloneDesyncHighlight.FillColor
-            DesyncLine.Visible = true
-        else
-            DesyncLine.Visible = false
-        end
-    else
-        DesyncLine.Visible = false
-    end
-
-    -- Dot
-    if matchacc.Desync.Dot then
-        local screenPos, onScreen = Camera:WorldToViewportPoint(BodyCloneDesync.HumanoidRootPart.Position)
-        if onScreen then
-            DesyncDot.Position = Vector2.new(screenPos.X, screenPos.Y)
-            DesyncDot.Visible = true
-        else
-            DesyncDot.Visible = false
-        end
-    else
-        DesyncDot.Visible = false
-    end
-
-    -- Status Text
     if matchacc.Desync.Status then
         DesyncStatus.Text = "Desync: " .. (matchacc.Desync.Enabled and "TRUE" or "FALSE")
         DesyncStatus.Color = matchacc.Desync.Enabled and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
@@ -7486,7 +7502,7 @@ DesyncGroup:AddSlider('DesyncRandomAmount', {
     Text = 'Random Amount',
     Default = 20,
     Min = 1,
-    Max = 1000,
+    Max = 10000000,
     Suffix = '',
     Compact = false,
     Callback = function(Value)
@@ -7533,147 +7549,9 @@ DesyncGroup:AddToggle('DesyncDot', {
         matchacc.Desync.Dot = Value
     end
 })
-
-MyButton = LeftGroupBox:AddButton({
-	Text = "Bank",
-	Func = function()
-		teleportCFrame = CFrame.new(- 442, 39, - 284)
-		game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(teleportCFrame)
-	end,
-	DoubleClick = false,
-	Tooltip = "Teleports you to the Bank"
-})
-MyButton = LeftGroupBox:AddButton({
-	Text = "Inside Bank",
-	Func = function()
-		teleportCFrame = CFrame.new(- 443, 23, - 284)
-		game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(teleportCFrame)
-	end,
-	DoubleClick = false,
-	Tooltip = "Teleports you to the Bank"
-})
-MyButton = LeftGroupBox:AddButton({
-	Text = "Vault",
-	Func = function()
-		teleportCFrame = CFrame.new(- 658, - 30, - 285)
-		game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(teleportCFrame)
-	end,
-	DoubleClick = false,
-	Tooltip = "Teleports you to the Bank"
-})
-MyButton = LeftGroupBox:AddButton({
-	Text = "Mid Appartment Building",
-	Func = function()
-		teleportCFrame = CFrame.new(- 323, 80, - 299)
-		game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(teleportCFrame)
-	end,
-	DoubleClick = false,
-	Tooltip = "Teleports you to the Bank"
-})
-MyButton = LeftGroupBox:AddButton({
-	Text = "Revolver",
-	Func = function()
-		teleportCFrame = CFrame.new(- 634, 21, - 132)
-		game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(teleportCFrame)
-	end,
-	DoubleClick = false,
-	Tooltip = "Teleports you to the Bank"
-})
-MyButton = LeftGroupBox:AddButton({
-	Text = "LMG",
-	Func = function()
-		teleportCFrame = CFrame.new(- 626, 23, - 295)
-		game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(teleportCFrame)
-	end,
-	DoubleClick = false,
-	Tooltip = "Teleports you to the Bank"
-})
-MyButton = LeftGroupBox:AddButton({
-	Text = "Swimming Pool",
-	Func = function()
-		teleportCFrame = CFrame.new(- 847, 21, - 279)
-		game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(teleportCFrame)
-	end,
-	DoubleClick = false,
-	Tooltip = "Teleports you to the Bank"
-})
-MyButton = LeftGroupBox:AddButton({
-	Text = "Broken Fire Station",
-	Func = function()
-		teleportCFrame = CFrame.new(- 1182, 28, - 521)
-		game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(teleportCFrame)
-	end,
-	DoubleClick = false,
-	Tooltip = "Teleports you to the Bank"
-})
-MyButton = LeftGroupBox:AddButton({
-	Text = "DownHill",
-	Func = function()
-		teleportCFrame = CFrame.new(- 559, 8, - 735)
-		game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(teleportCFrame)
-	end,
-	DoubleClick = false,
-	Tooltip = "Teleports you to the Bank"
-})
-MyButton = LeftGroupBox:AddButton({
-	Text = "Military Base",
-	Func = function()
-		teleportCFrame = CFrame.new(- 40, 65, - 926)
-		game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(teleportCFrame)
-	end,
-	DoubleClick = false,
-	Tooltip = "Teleports you to the Bank"
-})
-MyButton = LeftGroupBox:AddButton({
-	Text = "Uphill",
-	Func = function()
-		teleportCFrame = CFrame.new(481, 48, - 602)
-		game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(teleportCFrame)
-	end,
-	DoubleClick = false,
-	Tooltip = "Teleports you to the Bank"
-})
-MyButton = LeftGroupBox:AddButton({
-	Text = "Breaking Bad",
-	Func = function()
-		teleportCFrame = CFrame.new(598, 28, - 214)
-		game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(teleportCFrame)
-	end,
-	DoubleClick = false,
-	Tooltip = "Teleports you to the Bank"
-})
-MyButton = LeftGroupBox:AddButton({
-	Text = "Church",
-	Func = function()
-		teleportCFrame = CFrame.new(205, 21, - 124)
-		game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(teleportCFrame)
-	end,
-	DoubleClick = false,
-	Tooltip = "Teleports you to the Bank"
-})
-MyButton = LeftGroupBox:AddButton({
-	Text = "Police Station",
-	Func = function()
-		teleportCFrame = CFrame.new(- 264, 21, - 93)
-		game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(teleportCFrame)
-	end,
-	DoubleClick = false,
-	Tooltip = "Teleports you to the Bank"
-})
-MyButton = LeftGroupBox:AddButton({
-	Text = "School",
-	Func = function()
-		teleportCFrame = CFrame.new(- 594, 21, 173)
-		game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(teleportCFrame)
-	end,
-	DoubleClick = false,
-	Tooltip = "Teleports you to the Bank"
-})
+local PlayerListGroup = Tabs.Player:AddLeftGroupbox('Playerlist')
 local selectedPlayer = nil
 local spectateConnection = nil
-
-local PlayerListGroup = Tabs.Player:AddLeftGroupbox('Playerlist')
-
 PlayerListGroup:AddDropdown('AutoKillTarget', {
     SpecialType = 'Player',
     ExcludeLocalPlayer = true,
@@ -7736,96 +7614,155 @@ PlayerListGroup:AddButton('Goto', function()
     end
 end)
 
-getgenv().animEnabled = false
-getgenv().animTrack = nil
-getgenv().bangConnection = nil
--- Hàm dừng animation và teleport
-local function stopAnimAndTp()
-    if getgenv().animTrack then
-        getgenv().animTrack:Stop()
-        getgenv().animTrack = nil
-    end
-    if getgenv().bangConnection then
-        getgenv().bangConnection:Disconnect()
-        getgenv().bangConnection = nil
-    end
-    getgenv().animEnabled = false
-end
--- Xử lý khi respawn
-plr.CharacterAdded:Connect(function()
-    if getgenv().animEnabled then
-        task.wait(0.5)
-        local target = game.Players:FindFirstChild(selectedPlayer)
-        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-            local myChar = plr.Character
-            local myHum = myChar and myChar:FindFirstChildOfClass("Humanoid")
-            local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
-            if myHum and myHRP then
-                -- Chọn lại animation theo rig type
-                local anim = Instance.new("Animation")
-                anim.AnimationId = myHum.RigType == Enum.HumanoidRigType.R6 and "rbxassetid://148840371" or "rbxassetid://5918726674"
-                -- Phát lại animation
-                getgenv().animTrack = myHum:LoadAnimation(anim)
-                getgenv().animTrack.Looped = true
-                getgenv().animTrack:Play()
-                getgenv().animTrack:AdjustSpeed(10)
-                -- Teleport liên tục
-                getgenv().bangConnection = RunService.Heartbeat:Connect(function()
-                    if getgenv().animEnabled and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-                        myHRP.CFrame = target.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -0.9)
-                    else
-                        stopAnimAndTp()
-                    end
-                end)
-            end
-        else
-            stopAnimAndTp()
-        end
-    end
+local MainPlacesGroup = Tabs.Player:AddLeftGroupbox('Main Places')
+MainPlacesGroup:AddButton('Bank', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(-442, 39, -284))
 end)
-PlayerListGroup:AddToggle('BangPlayerToggle', {
-    Text = 'Bang Player',
-    Default = false,
-    Tooltip = 'Toggle Bang Player on selected target',
-    Callback = function(state)
-        getgenv().animEnabled = state
-     
-        if not state then
-            stopAnimAndTp()
-        else
-            local target = game.Players:FindFirstChild(selectedPlayer)
-            if not target or not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then
-                getgenv().animEnabled = false
-                Library:Notify("Invalid target!", 5)
-                return
-            end
-            local myChar = plr.Character
-            local myHum = myChar and myChar:FindFirstChildOfClass("Humanoid")
-            local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
-            if not (myHum and myHRP) then
-                getgenv().animEnabled = false
-                Library:Notify("Character not ready!", 5)
-                return
-            end
-            -- Chọn animation theo rig type
-            local anim = Instance.new("Animation")
-            anim.AnimationId = myHum.RigType == Enum.HumanoidRigType.R6 and "rbxassetid://148840371" or "rbxassetid://5918726674"
-            -- Phát animation
-            getgenv().animTrack = myHum:LoadAnimation(anim)
-            getgenv().animTrack.Looped = true
-            getgenv().animTrack:Play()
-            getgenv().animTrack:AdjustSpeed(10)
-            -- Teleport liên tục
-            getgenv().bangConnection = RunService.Heartbeat:Connect(function()
-                if getgenv().animEnabled and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-                    myHRP.CFrame = target.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 1)
-                else
-                    stopAnimAndTp()
-                end
-            end)
-        end
-    end
-})
+
+MainPlacesGroup:AddButton('Inside Bank', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(-443, 23, -284))
+end)
+
+MainPlacesGroup:AddButton('Vault', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(-658, -30, -285))
+end)
+
+MainPlacesGroup:AddButton('Mid Apartment Roof', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(-323, 80, -299))
+end)
+
+MainPlacesGroup:AddButton('Revolver Shop', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(-634, 21, -132))
+end)
+
+MainPlacesGroup:AddButton('LMG Shop', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(-626, 23, -295))
+end)
+
+MainPlacesGroup:AddButton('Swimming Pool', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(-847, 21, -279))
+end)
+
+MainPlacesGroup:AddButton('Broken Fire Station', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(-1182, 28, -521))
+end)
+
+MainPlacesGroup:AddButton('Downhill Gun Shop', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(-559, 8, -735))
+end)
+
+MainPlacesGroup:AddButton('Uphill Gun Shop', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(481, 48, -602))
+end)
+
+MainPlacesGroup:AddButton('Military Base', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(-40, 65, -926))
+end)
+
+MainPlacesGroup:AddButton('Breaking Bad House', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(598, 28, -214))
+end)
+
+MainPlacesGroup:AddButton('Church', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(205, 21, -124))
+end)
+
+MainPlacesGroup:AddButton('Police Station', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(-264, 21, -93))
+end)
+
+MainPlacesGroup:AddButton('School', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(-594, 21, 173))
+end)
+
+-- Extra Places Group (từ đoạn thứ hai)
+local ExtraPlacesGroup = Tabs.Player:AddLeftGroupbox('Extra Places')
+
+ExtraPlacesGroup:AddButton('UFO', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(50, 138, -671))
+end)
+
+ExtraPlacesGroup:AddButton('Casino', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(-866, 44, -156))
+end)
+
+ExtraPlacesGroup:AddButton('Gas Station', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(537, 47, -248))
+end)
+
+ExtraPlacesGroup:AddButton('Gym / Fitness', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(-77, 22, -622))
+end)
+
+-- Food Stores
+local FoodGroup = Tabs.Player:AddLeftGroupbox('Food Stores')
+
+FoodGroup:AddButton('Food Store #1', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(-336, 23, -298))
+end)
+
+FoodGroup:AddButton('Food Store #2', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(299, 49, -617))
+end)
+
+FoodGroup:AddButton('Food Store #3', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(-279, 22, -807))
+end)
+
+FoodGroup:AddButton('Food Store #4', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(584, 51, -477))
+end)
+
+FoodGroup:AddButton('Food Store #5', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(-995, 25, -157))
+end)
+
+FoodGroup:AddButton('Food Store #6', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(-903, 22, -670))
+end)
+
+-- Armor Locations
+local ArmorGroup = Tabs.Player:AddLeftGroupbox('Armor Locations')
+
+ArmorGroup:AddButton('Armor #1 (Downhill)', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(-605, 10, -788))
+end)
+
+ArmorGroup:AddButton('Armor #2 (Uphill)', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(532, 50, -637))
+end)
+
+ArmorGroup:AddButton('Armor #3 (Sewer)', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(-933, -28, 565))
+end)
+
+ArmorGroup:AddButton('Armor #4', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(409, 48, -50))
+end)
+
+ArmorGroup:AddButton('Armor #5 (Police)', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(-257, 21, -78))
+end)
+
+ArmorGroup:AddButton('Armor #6', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(97, 23, -303))
+end)
+
+-- Safe Zones
+local SafeGroup = Tabs.Player:AddLeftGroupbox('Safe Zones')
+
+SafeGroup:AddButton('Safe Zone #1', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(-55, -58, 146))
+end)
+
+SafeGroup:AddButton('Safe Zone #2', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(-124, -58, 130))
+end)
+
+SafeGroup:AddButton('Safe Zone #3 (High)', function()
+    LocalPlayer.Character:PivotTo(CFrame.new(-547, 173, -2))
+end)
+
 end)()
 coroutine.wrap(function()
 local LeftGroupBox = Tabs.Misc:AddLeftGroupbox('Auto Chatters')
@@ -10394,6 +10331,9 @@ TrollingBox:AddButton("Rape", function()
         end
     end
     _G.JOINTWATCHER = v606.DescendantAdded:Connect(v632)
+end)
+TrollingBox:AddButton("Control Body", function()
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/Ice-NewbieScripter/Da-Hood/main/Control%20Da%20Hood.lua"))()
 end)
 TrollingBox:AddButton("Kiss", function()
     local vu685 = game.Players.LocalPlayer
