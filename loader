@@ -7,170 +7,8 @@ end
 if getnamecallmethod then
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Pixeluted/adoniscries/main/Source.lua",true))()
 end
---[[if game.GameId ~= 17625359962 then
 
-
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer or Players:GetPropertyChangedSignal("LocalPlayer"):Wait() and Players.LocalPlayer
-
-print("Rivals Anticheat Disabler executed!")
-local success, err = pcall(function()
-    assert(getgc, "executor missing required function getgc")
-    assert(debug and debug.info, "executor missing required function debug.info (somehow)")
-    assert(hookfunction, "executor missing required function hookfunction")
-    assert(getconnections, "executor missing required function getconnections")
-    assert(newcclosure, "executor missing required function newcclosure")
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    local LogService = game:GetService("LogService")
-    local ScriptContext = game:GetService("ScriptContext")
-    task.spawn(function()
-        local hooked = 0
-        for _, v in pairs(getgc(true)) do
-            if typeof(v) == "function" then
-                local ok, src = pcall(function()
-                    return debug.info(v, "s")
-                end)
-                if ok and type(src) == "string" and string.find(src, "AnalyticsPipelineController") then
-                    hooked += 1
-                    local oldfn
-                    oldfn = hookfunction(v, newcclosure(function(...)
-                        return wait(9e9)
-                    end))
-                end
-            end
-        end
-        print("Hanged " .. hooked .. " functions")
-    end)
-    task.spawn(function()
-        local ok, remote = pcall(function()
-            return ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("AnalyticsPipeline"):WaitForChild("RemoteEvent")
-        end)
-        if ok and remote and remote.OnClientEvent then
-            local hooked = 0
-            for _, conn in pairs(getconnections(remote.OnClientEvent)) do
-                if conn and conn.Function then
-                    if pcall(function()
-                        hookfunction(conn.Function, newcclosure(function(...)
-                        end))
-                    end) then 
-                        hooked += 1
-                    end
-                end
-            end
-            print("Hooked " .. hooked .. " anticheat remotes")
-        end
-    end)
-    task.spawn(function()
-        local hooked = 0
-        for _, conn in pairs(getconnections(LogService.MessageOut)) do
-            if conn and conn.Function then
-                if pcall(function()
-                    hookfunction(conn.Function, newcclosure(function(...)
-                    end))
-                end) then
-                    hooked += 1
-                end
-            end
-        end
-        print("Hooked " .. hooked .. " MessageOut connections")
-    end)
-    task.spawn(function()
-        local hooked = 0
-        for _, conn in ipairs(getconnections(ScriptContext.Error)) do
-            if pcall(function()
-                conn:Disable()
-            end) then
-                hooked += 1
-            end
-        end
-        print("Hooked " .. hooked .. " error connections")
-        pcall(function()
-            hookfunction(ScriptContext.Error.Connect, newcclosure(function(...)
-                return nil
-            end))
-        end)
-    end)
-    task.spawn(function()
-        local KickNames = {
-            "Kick",
-            "kick"
-        }
-        for _, name in ipairs(KickNames) do
-            local fn = LocalPlayer[name]
-            if type(fn) == "function" then
-                local oldkick
-                oldkick = hookfunction(fn, newcclosure(function(self, ...)
-                    if self == LocalPlayer then
-                        return
-                    end
-                    return oldkick(self, ...)
-                end))
-            end
-        end
-    end)
-end)
-end]]
 coroutine.wrap(function()
-if isDaHood then
-if not syn or not protectgui then
-    getgenv().protectgui = function() end
-end
-
-task.spawn(function()
-	local g = getinfo or debug.getinfo
-	local d = false
-	local h = {}
-
-	local x, y
-
-	setthreadidentity(2)
-
-	for i, v in getgc(true) do
-		if typeof(v) == "table" then
-			local a = rawget(v, "Detected")
-			local b = rawget(v, "Kill")
-		
-			if typeof(a) == "function" and not x then
-				x = a
-				local o; o = hookfunction(x, function(c, f, n)
-					if c ~= "_" then
-						if d then
-						end
-					end
-					
-					return true
-				end)
-				table.insert(h, x)
-			end
-
-			if rawget(v, "Variables") and rawget(v, "Process") and typeof(b) == "function" and not y then
-				y = b
-				local o; o = hookfunction(y, function(f)
-					if d then
-					end
-				end)
-				table.insert(h, y)
-			end
-		end
-	end
-
-	local o; o = hookfunction(getrenv().debug.info, newcclosure(function(...)
-		local a, f = ...
-
-		if x and a == x then
-			if d then
-				warn(`zins | adonis bypassed`)
-			end
-
-			return coroutine.yield(coroutine.running())
-		end
-		
-		return o(...)
-	end))
-
-	setthreadidentity(7)
-end)
-
 local success, err = pcall(function()
     local gamerawmetatable = getrawmetatable(game)
     setreadonly(gamerawmetatable, false)
@@ -206,7 +44,6 @@ if not success then
     warn("[Anti-RemoteBlock] Executor not support hook metatable (__namecall). Skipped.")
 end
 warn("[+] Matcha.cc : anticheat bypassed.")
-end
 end)()
 
 local repo = 'https://raw.githubusercontent.com/quiwti08/beubebong/refs/heads/main/'
@@ -288,7 +125,8 @@ local Tabs = {
 local previousTargetHealth = {}
 local TargetAimActive = false
 local BuyingActive = false
-local AutokillActive = false
+local AutoKillActive = false
+local AutoHealActive = false
 local AutoArmorActive = false
 local AutoLoadoutActive = false
 local BuyingSingleActive = false
@@ -330,7 +168,6 @@ local matchacc = {
         TargetStats = false,
         Autokill = false,
         DotCircle = false,
-        AutoKillOnDamage = false,
     },
     HitEffects = {
         HitSounds = false,
@@ -2959,7 +2796,7 @@ TriggerBox:AddToggle('TriggerbotEnabled', {
     Default = false,
     Callback = function(v) getgenv().Matcha.Legit.Triggerbot.Enabled = v end
 }):AddKeyPicker('TargetAimKey', {
-    Default = 'Q',
+    Default = 'none',
     Text = 'Target Aim',
     Mode = 'Toggle',
     Callback = function(Value) getgenv().Matcha.Legit.Triggerbot.Enabled = Value end 
@@ -6096,7 +5933,6 @@ game:GetService("RunService").Stepped:Connect(function()
         end
     end
 end)
-local useDesync = matchacc.TargetAim.Strafe or matchacc.TargetAim.AutoStomp or matchacc.KillAura.StompAura or matchacc.TargetAim.AutoKill or headshots.AutoArmor.Enabled or headshots.AutoLoadout.Enabled or BuyingAmmo or BuyingSingle 
 RunService.Heartbeat:Connect(function(dt)
 	if getnamecallmethod and matchacc.RapidFire.Enabled then
 	    local tool = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Tool")
@@ -6112,12 +5948,13 @@ RunService.Heartbeat:Connect(function(dt)
 	        end
 	    end
 	end
+    local useDesync = matchacc.TargetAim.Strafe or matchacc.TargetAim.AutoStomp or matchacc.KillAura.StompAura or matchacc.TargetAim.AutoKill or headshots.AutoArmor.Enabled or headshots.AutoLoadout.Enabled or BuyingAmmo or BuyingSingle 
     local TargetPlayer = players:FindFirstChild(matchacc.TargetAim.Target)
     local hrp = localPlayer.Character:FindFirstChild("HumanoidRootPart")
     local Tool = localPlayer.Character:FindFirstChildOfClass("Tool")
     local SavedPosition = hrp.CFrame
     if useDesync and hrp then
-        if matchacc.TargetAim.Strafe and matchacc.TargetAim.Target ~= "None" and TargetPlayer and TargetPlayer.Character and TargetPlayer.Character:FindFirstChild("Head") and not (AutoArmorActive or AutoLoadoutActive or BuyingSingleActive or BuyingAmmoActive) then
+        if matchacc.TargetAim.Strafe and matchacc.TargetAim.Target ~= "None" and TargetPlayer and TargetPlayer.Character and TargetPlayer.Character:FindFirstChild("Head") and not (AutoArmorActive or AutoLoadoutActive or BuyingSingleActive or BuyingAmmoActive or AutoHealActive) then
             if not TargetPlayer.Character:FindFirstChild("ForceField") then
                 if not KnockCheck(TargetPlayer) and localPlayer.Character.BodyEffects.Reload.Value == false then
                     local currentPosition = TargetPlayer.Character.Head.Position
@@ -6134,6 +5971,10 @@ RunService.Heartbeat:Connect(function(dt)
                     end
                     local desyncPosition = currentPosition + (customVelocities[TargetPlayer] * PredictionValue) + strafeOffset
                     hrp.CFrame = CFrame.lookAt(desyncPosition, currentPosition)
+                    RunService:BindToRenderStep("RestoreStrafe", 199, function()
+                        hrp.CFrame = SavedPosition
+                        RunService:UnbindFromRenderStep("RestoreStrafe")
+                    end)
                     if matchacc.TargetAim.VisualizeStrafe then
                         BodyClone:SetPrimaryPartCFrame(hrp.CFrame)
                         BodyCloneHighlight.Enabled = true
@@ -6176,10 +6017,6 @@ RunService.Heartbeat:Connect(function(dt)
                     elseif M1Down then
                         MainEvent:FireServer(unpack(args))
                     end
-                    RunService:BindToRenderStep("RestoreStrafe", 199, function()
-                        hrp.CFrame = SavedPosition
-                        RunService:UnbindFromRenderStep("RestoreStrafe")
-                    end)
                 end
             else
                 hrp.CFrame += Vector3.new(math.random(-9e9, 9e9), math.random(0, 9e9), math.random(-9e9, 9e9))
@@ -6295,14 +6132,14 @@ RunService.Heartbeat:Connect(function(dt)
     AutoLoadoutActive = false
     BuyingSingleActive = false
     BuyingAmmoActive = false
-    AutokillActive = false
-
+    AutoHealActive = false
+    AutoKillActive = false
     local hrp = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
     local Tool = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Tool")
     local SavedPosition = hrp and hrp.CFrame
 
-
-    abletodesync = not (TargetAimActive or AutoArmorActive or AutoLoadoutActive or BuyingAmmoActive or BuyingSingleActive or AutokillActive)
+	local useDesync = matchacc.TargetAim.Strafe or matchacc.TargetAim.AutoStomp or matchacc.KillAura.StompAura or matchacc.TargetAim.AutoKill or headshots.AutoArmor.Enabled or headshots.AutoLoadout.Enabled or BuyingAmmo or BuyingSingle 
+    abletodesync = not (AutoKillActive or TargetAimActive or AutoArmorActive or AutoLoadoutActive or BuyingAmmoActive or BuyingSingleActive or AutoHealActive)
 	if matchacc.TargetAim.Enabled and matchacc.TargetAim.Target ~= "None" then
 	    local TargetPlayer = players:FindFirstChild(matchacc.TargetAim.Target)
 	    if TargetPlayer and TargetPlayer.Character and TargetPlayer.Character:FindFirstChild("Humanoid") then
@@ -6504,6 +6341,10 @@ RunService.Heartbeat:Connect(function(dt)
             local isDead = bodyEffects and bodyEffects:FindFirstChild("SDeath") and bodyEffects.SDeath.Value
             if isDead == false then
                 hrp.CFrame = CFrame.new(TargetPlayer.Character.UpperTorso.Position + Vector3.new(0, 3, 0))
+                RunService:BindToRenderStep("RestoreStomp", 199, function()
+                    hrp.CFrame = SavedPosition
+                    RunService:UnbindFromRenderStep("RestoreStomp")
+                end)
                 if matchacc.HitEffects.HitNotifications then
                     if tick() - t >= 3 then
                         t = tick()
@@ -6511,12 +6352,8 @@ RunService.Heartbeat:Connect(function(dt)
                     end
                 end
                 MainEvent:FireServer("Stomp")
-                RunService:BindToRenderStep("RestoreStomp", 199, function()
-                    hrp.CFrame = SavedPosition
-                    RunService:UnbindFromRenderStep("RestoreStomp")
-                end)
             end
-        elseif matchacc.KillAura.StompAura and not (TargetAimActive or AutoArmorActive or AutoLoadoutActive or BuyingAmmoActive or BuyingSingleActive or AutokillActive) then
+        elseif matchacc.KillAura.StompAura and not (AutoKillActive or TargetAimActive or AutoArmorActive or AutoLoadoutActive or BuyingAmmoActive or BuyingSingleActive or AutoHealActive) then
             local shortestDistance = math.huge
             local stompTarget
             for _, player in pairs(players:GetPlayers()) do
@@ -6533,11 +6370,11 @@ RunService.Heartbeat:Connect(function(dt)
                 local isDead = bodyEffects and bodyEffects:FindFirstChild("SDeath") and bodyEffects.SDeath.Value
                 if isDead == false then
                     hrp.CFrame = CFrame.new(stompTarget.Character.UpperTorso.Position + Vector3.new(0, 3, 0))
-                    MainEvent:FireServer("Stomp")
                     RunService:BindToRenderStep("RestoreStompAura", 199, function()
                         hrp.CFrame = SavedPosition
                         RunService:UnbindFromRenderStep("RestoreStompAura")
                     end)
+                    MainEvent:FireServer("Stomp")
                 end
             end
         end
@@ -6562,22 +6399,17 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
     if BuyingSingle and not game.Players.LocalPlayer.Character:FindFirstChild(SelectedGun) and not game.Players.LocalPlayer.Backpack:FindFirstChild(SelectedGun) then
         BuyingSingleActive = true
     end
-    -- Buying Ammo Logic
-    if BuyingAmmo then
-        BuyingAmmoActive = true
-    end
     -- Auto Loadout Logic (sửa: mua súng nếu chưa có, mua ammo nếu hết đạn - mua 3 lần)
     if headshots.AutoLoadout.Enabled and headshots.AutoLoadout.Gun and ShopTable[headshots.AutoLoadout.Gun] then
         local char = game.Players.LocalPlayer.Character
         local backpack = game.Players.LocalPlayer.Backpack
         local gunInChar = char:FindFirstChild(headshots.AutoLoadout.Gun)
         local gunInBackpack = backpack:FindFirstChild(headshots.AutoLoadout.Gun)
-       
         -- Mua súng nếu chưa có
         if not gunInChar and not gunInBackpack then
             AutoLoadoutActive = true
         else
-            -- Kiểm tra ammo (súng giờ ở backpack)
+            local SavedPosition = hrp.CFrame
             local equippedGun = backpack:FindFirstChild(headshots.AutoLoadout.Gun)
             if equippedGun and equippedGun:FindFirstChild("Ammo") and equippedGun.Ammo.Value == 0 then
                 -- Mua ammo 3 lần khi hết đạn
@@ -6586,17 +6418,16 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
 					local shop = game.Workspace.Ignored.Shop:FindFirstChild(ShopTable[AmmoName].ShopName)
 					if shop and shop:FindFirstChild("Head") then
 						local hrp = char.HumanoidRootPart
-						local SavedPosition = hrp.CFrame
 						hrp.CFrame = shop.Head.CFrame
+						game:GetService("RunService"):BindToRenderStep("RestoreCFrame", 199, function()
+							hrp.CFrame = SavedPosition
+							game:GetService("RunService"):UnbindFromRenderStep("RestoreCFrame")
+						end)
 						local currentTool = char:FindFirstChildOfClass("Tool")
 						if currentTool then
 							currentTool.Parent = plr.Backpack
 						end
 						fireclickdetector(shop:FindFirstChildOfClass("ClickDetector"))
-						game:GetService("RunService"):BindToRenderStep("RestoreCFrame", 199, function()
-							hrp.CFrame = SavedPosition
-							game:GetService("RunService"):UnbindFromRenderStep("RestoreCFrame")
-						end)
 					end
                 end
             end
@@ -6607,7 +6438,7 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
         AutoArmorActive = true
     end
     -- Checking for desync
-    if TargetAimActive or AutokillActive or AutoArmorActive or AutoLoadoutActive or BuyingAmmoActive or BuyingSingleActive then
+    if AutoKillActive or TargetAimActive or AutoArmorActive or AutoLoadoutActive or BuyingAmmoActive or BuyingSingleActive or AutoHealActive then
         abletodesync = false
     else
         abletodesync = true
@@ -6620,19 +6451,19 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
         pcall(function()
             -- Buy Single (thả bất kỳ tool đang cầm trước khi mua)
             if BuyingSingle and not char:FindFirstChild(SelectedGun) and not plr.Backpack:FindFirstChild(SelectedGun) then
+                local SavedPosition = hrp.CFrame
                 local shop = game.Workspace.Ignored.Shop:FindFirstChild(ShopTable[SelectedGun].ShopName)
                 if shop and shop:FindFirstChild("Head") then
-                    local SavedPosition = hrp.CFrame
                     hrp.CFrame = shop.Head.CFrame
+					game:GetService("RunService"):BindToRenderStep("RestoreCFrame", 199, function()
+						hrp.CFrame = SavedPosition
+						game:GetService("RunService"):UnbindFromRenderStep("RestoreCFrame")
+					end)
 	                local currentTool = char:FindFirstChildOfClass("Tool")
 	                if currentTool then
 	                    currentTool.Parent = plr.Backpack
 	                end
                     fireclickdetector(shop:FindFirstChildOfClass("ClickDetector"))
-                    game:GetService("RunService"):BindToRenderStep("RestoreCFrame", 199, function()
-                        hrp.CFrame = SavedPosition
-                        game:GetService("RunService"):UnbindFromRenderStep("RestoreCFrame")
-                    end)
                 end
             else
                 BuyingSingle = false
@@ -6642,6 +6473,7 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
                 local AmmoName = "[" .. SelectedGun:sub(2, -2) .. " Ammo]"
                 local ammoData = ShopTable[AmmoName]
                 if ammoData then
+                    local SavedPosition = hrp.CFrame
                     local shop = game.Workspace.Ignored.Shop:FindFirstChild(ammoData.ShopName)
                     if shop and shop:FindFirstChild("Head") then
                         if char:FindFirstChild(SelectedGun) or plr.Backpack:FindFirstChild(SelectedGun) then
@@ -6649,17 +6481,17 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
                             if gunObj then
                                 gunObj.Parent = plr.Backpack
                             end
-                            local SavedPosition = hrp.CFrame
+                            
                             hrp.CFrame = shop.Head.CFrame
+							game:GetService("RunService"):BindToRenderStep("RestoreCFrame", 199, function()
+								hrp.CFrame = SavedPosition
+								game:GetService("RunService"):UnbindFromRenderStep("RestoreCFrame")
+							end)
 			                local currentTool = char:FindFirstChildOfClass("Tool")
 			                if currentTool then
 			                    currentTool.Parent = plr.Backpack
 			                end
                             fireclickdetector(shop:FindFirstChildOfClass("ClickDetector"))
-                            game:GetService("RunService"):BindToRenderStep("RestoreCFrame", 199, function()
-                                hrp.CFrame = SavedPosition
-                                game:GetService("RunService"):UnbindFromRenderStep("RestoreCFrame")
-                            end)
                         end
                     end
                 end
@@ -6672,16 +6504,16 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
                 if ShopItem and ShopItem:FindFirstChild("Head") then
                     local SavedPosition = hrp.CFrame
                     hrp.CFrame = ShopItem.Head.CFrame
+					game:GetService("RunService"):BindToRenderStep("RestoreCFrame", 199, function()
+						hrp.CFrame = SavedPosition
+						game:GetService("RunService"):UnbindFromRenderStep("RestoreCFrame")
+					end)
 	                local currentTool = char:FindFirstChildOfClass("Tool")
 	                if currentTool then
 	                    currentTool.Parent = plr.Backpack
 	                    task.wait(0.1)
 	                end
                     fireclickdetector(ShopItem:FindFirstChildOfClass("ClickDetector"))
-                    game:GetService("RunService"):BindToRenderStep("RestoreCFrame", 199, function()
-                        hrp.CFrame = SavedPosition
-                        game:GetService("RunService"):UnbindFromRenderStep("RestoreCFrame")
-                    end)
                 end
             end
             -- Auto Armor
@@ -6707,9 +6539,8 @@ game:GetService('RunService').Heartbeat:Connect(function(dt)
         end)
     end
 end)
-local killpos = nil
 RunService.Heartbeat:Connect(function(dt)
-    if matchacc.TargetAim.AutoKill and not (TargetAimActive or AutoArmorActive or AutoLoadoutActive or BuyingSingleActive or BuyingAmmoActive) then
+    if matchacc.TargetAim.AutoKill and not (AutoKillActive or TargetAimActive or AutoArmorActive or AutoLoadoutActive or BuyingSingleActive or BuyingAmmoActive or AutoHealActive) then
         local targetName = matchacc.TargetAim.Target -- Sử dụng target từ TargetAim
         if getgenv().lastTarget ~= targetName then
             -- Force restore vị trí khi target thay đổi để tránh stuck từ target cũ
@@ -6724,7 +6555,6 @@ RunService.Heartbeat:Connect(function(dt)
         if targetName ~= nil and targetName ~= "None" then -- Thêm check "None" để tránh target default
             local Target = players:FindFirstChild(targetName)
             if Target and Target.Character and localPlayer and localPlayer.Character then
-                AutokillActive = true
                 local humanoidRootPart = localPlayer.Character:FindFirstChild("HumanoidRootPart")
                 local head = localPlayer.Character:FindFirstChild("Head")
                 local tool = localPlayer.Character:FindFirstChildOfClass("Tool")
@@ -6842,44 +6672,234 @@ AutoBuyGroup:AddToggle('AutoArmor', {
         headshots.AutoArmor.Enabled = Value
     end
 })
+getgenv().AutoHealEnabled = false
+getgenv().AutoHealThreshold = 100  -- Biến mới: Ngưỡng health để kích hoạt autoheal (default 50)
+getgenv().AutoArmorEnabled = false
+getgenv().AutoArmorThreshold = 50
 AutoBuyGroup:AddToggle('AutoHeal', {
     Text = 'Auto Heal',
     Default = false,
     Tooltip = 'auto eat when low health',
     Callback = function(Value)
         getgenv().AutoHealEnabled = Value
+        if Value then
+            Library:Notify("Auto Heal enabled", 5)
+        else
+            Library:Notify("Auto Heal disabled", 5)
+        end
     end
 })
 
-RunService.Heartbeat:Connect(function()
-    if getgenv().AutoHealEnabled then
-        local char = plr.Character
-        local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-        if humanoid and humanoid.Health < humanoid.MaxHealth then
-            if not BuyingSingleActive then
-                BuyingSingleActive = true
-                local shopItem = "[Lettuce] - $5"
-                local price = 5
-                local itemName = "[Lettuce]"
-                
-                getRoot(plr).CFrame = workspace.Ignored.Shop[shopItem].Head.CFrame * CFrame.new(0, 3, 0)
-                task.wait(0.1)
-                fireclickdetector(workspace.Ignored.Shop[shopItem].ClickDetector)
-                task.wait(0.5)  -- Delay để tránh spam
-                
-                -- Equip và activate để heal (ăn lettuce để heal)
-                if plr.Backpack:FindFirstChild(itemName) then
-                    plr.Backpack[itemName].Parent = char
-                end
-                if char:FindFirstChild(itemName) then
-                    char[itemName]:Activate()
-                end
-                
-                BuyingSingleActive = false
-            end
+-- Thêm Slider để điều chỉnh ngưỡng health
+AutoBuyGroup:AddSlider('AutoHealThreshold', {
+    Text = 'Heal Threshold',
+    Default = 99,
+    Min = 1,
+    Max = 99,
+    Rounding = 0,
+    Tooltip = 'Heal when health below this value',
+    Callback = function(Value)
+        getgenv().AutoHealThreshold = Value
+        Library:Notify("Auto Heal threshold set to " .. Value, 5)
+    end
+})
+AutoBuyGroup:AddToggle('AutoArmor', {
+    Text = 'Auto Armor',
+    Default = false,
+    Tooltip = 'auto buy armor when low',
+    Callback = function(Value)
+        getgenv().AutoArmorEnabled = Value
+        if Value then
+            Library:Notify("Auto Armor enabled", 5)
+        else
+            Library:Notify("Auto Armor disabled", 5)
         end
     end
-end)
+})
+
+AutoBuyGroup:AddSlider('AutoArmorThreshold', {
+    Text = 'Armor Threshold',
+    Default = 50,
+    Min = 0,
+    Max = 129,
+    Rounding = 0,
+    Tooltip = 'Buy armor when below this value',
+    Callback = function(Value)
+        getgenv().AutoArmorThreshold = Value
+        Library:Notify("Auto Armor threshold set to " .. Value, 5)
+    end
+})
+coroutine.wrap(function()
+    while true do
+        task.wait()  -- Thay vì task.wait(), dùng trong loop để không block
+        pcall(function()
+            if getgenv().AutoHealEnabled and not (AutoKillActive or TargetAimActive or AutoArmorActive or AutoLoadoutActive or BuyingAmmoActive or BuyingSingleActive) then
+                local character = plr.Character
+				local hrp = character.HumanoidRootPart
+				
+				local SavedPosition = hrp.CFrame
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                if humanoid and humanoid.Health > 0 then
+                    if humanoid.Health > getgenv().AutoHealThreshold then
+                    else
+                        while humanoid.Health < 100 and getgenv().AutoHealEnabled do
+                            AutoHealActive = true
+                            character.HumanoidRootPart.CFrame = CFrame.new(game:GetService("Workspace").Ignored.Shop["[Taco] - $4"].Head.Position) * CFrame.new(0, -3.1, 0)
+							RunService:BindToRenderStep("RestoreStrafe", 199, function()
+							    hrp.CFrame = SavedPosition
+							    RunService:UnbindFromRenderStep("RestoreStrafe")  -- Unbind để tránh lặp
+							end)
+                            
+                            local backpack = plr.Backpack
+                            if backpack:FindFirstChild("[Taco]") or character:FindFirstChild("[Taco]") then
+                                if backpack:FindFirstChild("[Taco]") then
+                                    character.HumanoidRootPart.CFrame = CFrame.new(9e9, 9e9, 9e9)
+									RunService:BindToRenderStep("RestoreStrafe", 199, function()
+									    hrp.CFrame = SavedPosition
+									    RunService:UnbindFromRenderStep("RestoreStrafe")  -- Unbind để tránh lặp
+									end)
+                                    backpack:FindFirstChild("[Taco]").Parent = character  -- Equip
+                                elseif character:FindFirstChild("[Taco]") then
+                                    character:FindFirstChild("[Taco]"):Activate()  -- Eat
+                                end
+                            else
+                                -- Buy nếu chưa có
+                                fireclickdetector(game:GetService("Workspace").Ignored.Shop["[Taco] - $4"].ClickDetector, 0)
+                            end
+                            task.wait(0)  
+                        end
+                    end
+                end
+            end
+        end)
+    end
+end)()
+coroutine.wrap(function()
+    local RunService = game:GetService("RunService")
+    while true do
+        task.wait()
+        pcall(function()
+            if getgenv().AutoArmorEnabled and not (AutoKillActive or TargetAimActive or AutoHealActive or AutoLoadoutActive or BuyingAmmoActive or BuyingSingleActive) then
+                local character = plr.Character
+                local hrp = character.HumanoidRootPart
+                local bodyEffects = character:FindFirstChild("BodyEffects")  -- Giả sử vu178 = BodyEffects
+                if bodyEffects and bodyEffects:FindFirstChild("Armor") then
+                    if bodyEffects.Armor.Value > getgenv().AutoArmorThreshold then
+                        -- Skip
+                    else
+                        local SavedPosition = hrp.CFrame
+                        while bodyEffects.Armor.Value < 130 and getgenv().AutoArmorEnabled do
+                            AutoArmorActive = true
+                            if bodyEffects.Armor.Value < 130 then
+                                if character:FindFirstChildWhichIsA("Tool") then
+                                    character:FindFirstChildWhichIsA("Tool").Parent = plr.Backpack
+                                end
+                                hrp.CFrame = CFrame.new(game:GetService("Workspace").Ignored.Shop["[High-Medium Armor] - $2513"].Head.Position) * CFrame.new(0, -5.8, 0)
+                                RunService:BindToRenderStep("RestoreStrafe", 199, function()
+                                    hrp.CFrame = SavedPosition
+                                    RunService:UnbindFromRenderStep("RestoreStrafe")
+                                end)
+                                fireclickdetector(game:GetService("Workspace").Ignored.Shop["[High-Medium Armor] - $2513"].ClickDetector, 0)
+                            end
+                            task.wait(0)
+                        end
+                        AutoArmorActive = false
+                    end
+                end
+            end
+        end)
+    end
+end)()
+getgenv().AutoMaskEnabled = false
+getgenv().SelectedMask = "surgeon"  -- Default mask
+AutoBuyGroup:AddToggle('AutoMask', {
+    Text = 'Auto Mask',
+    Default = false,
+    Tooltip = 'auto buy and use mask when needed',
+    Callback = function(Value)
+        getgenv().AutoMaskEnabled = Value
+        if Value then
+            Library:Notify("Auto Mask enabled", 5)
+        else
+            Library:Notify("Auto Mask disabled", 5)
+        end
+    end
+})
+
+-- Dropdown chọn mask
+AutoBuyGroup:AddDropdown('MaskSelection', {
+    Values = {"paint", "ninja", "surgeon", "riot", "hockey", "breathing", "skull", "pumpkin"},
+    Default = "surgeon",
+    Multi = false,
+    Text = 'Select Mask',
+    Tooltip = 'Choose mask type',
+    Callback = function(Value)
+        getgenv().SelectedMask = Value
+        Library:Notify("Selected mask: " .. Value, 5)
+    end
+})
+
+-- Logic AutoMask (tích hợp từ skido, với snap back)
+coroutine.wrap(function()
+    local RunService = game:GetService("RunService")
+    local vu98 = {
+        paint = "[Paintball Mask] - $66",
+        ninja = "[Ninja Mask] - $66",
+        surgeon = "[Surgeon Mask] - $27",
+        riot = "[Riot Mask] - $66",
+        hockey = "[Hockey Mask] - $66",
+        breathing = "[Breathing Mask] - $66",
+        skull = "[Skull Mask] - $66",
+        pumpkin = "[Pumpkin Mask] - $66"
+    }
+    while true do
+        task.wait()
+        pcall(function()
+            if getgenv().AutoMaskEnabled then
+                local character = plr.Character
+                local hrp = character.HumanoidRootPart
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                if humanoid and humanoid.Health > 0 then
+                    local maskName = vu98[getgenv().SelectedMask]
+                    local maskShop = game:GetService("Workspace").Ignored.Shop:FindFirstChild(maskName)
+                    if not maskShop then return end
+                    
+                    local SavedPosition = hrp.CFrame
+                    local maskInBackpack = plr.Backpack:FindFirstChild("[Mask]")
+                    local maskInChar = character:FindFirstChild("[Mask]")
+                    local inGameMask = character:FindFirstChild("In-gameMask")
+                    
+                    if maskInBackpack or (maskInChar or inGameMask) then
+                        if (maskInBackpack or maskInChar) and not inGameMask then
+                            if maskInBackpack then
+                                maskInBackpack.Parent = character
+                                task.wait(0.3)
+                            end
+                            local maskTool = character:FindFirstChild("[Mask]")
+                            if maskTool then
+                                maskTool:Activate()
+                                task.wait(1)
+                                if character:FindFirstChild("Humanoid") and humanoid.Health > 0 and plr:FindFirstChild("Backpack") then
+                                    maskTool.Parent = plr.Backpack
+                                end
+                                getgenv().AutoMaskEnabled = false  -- Disable sau khi use
+                                Library:Notify("Mask used, auto logic disabled.", 5)
+                            end
+                        end
+                    else
+                        -- Buy mask
+                        hrp.CFrame = CFrame.new(maskShop.Head.Position) * CFrame.new(0, 2, 0)
+                        RunService:BindToRenderStep("RestoreStrafe", 199, function()
+                            hrp.CFrame = SavedPosition
+                            RunService:UnbindFromRenderStep("RestoreStrafe")
+                        end)
+                        fireclickdetector(maskShop.ClickDetector, 0)
+                    end
+                end
+            end
+        end)
+    end
+end)()
 end
 end)()
 coroutine.wrap(function()
