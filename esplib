@@ -52,7 +52,7 @@ function espModule.CreateBox(self, _)
         HealthBarBackground = Drawing.new("Square"),
         HealthBar = Drawing.new("Square")
     }
-    boxDrawings.Box.Thickness = 2
+    boxDrawings.Box.Thickness = 1
     boxDrawings.Box.Color = self.Config.BoxColor
     boxDrawings.Box.Filled = false
     boxDrawings.Box.Visible = false
@@ -116,7 +116,7 @@ function espModule.CreateSkeleton(self, targetPlayer)
         }
     end
     for _, line in pairs(skeletonLines) do
-        line.Thickness = 2
+        line.Thickness = 1
         line.Color = self.Config.SkeletonColor
         line.Visible = false
     end
@@ -124,7 +124,7 @@ function espModule.CreateSkeleton(self, targetPlayer)
 end
 function espModule.CreateTracer(self, _)
     local tracerLine = Drawing.new("Line")
-    tracerLine.Thickness = 2
+    tracerLine.Thickness = 1
     tracerLine.Color = self.Config.TracerColor
     tracerLine.Visible = false
     return tracerLine
