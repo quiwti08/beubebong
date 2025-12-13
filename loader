@@ -330,6 +330,7 @@ local matchacc = {
         TargetStats = false,
         Autokill = false,
         DotCircle = false,
+        AutoKillOnDamage = false,
     },
     HitEffects = {
         HitSounds = false,
@@ -4535,6 +4536,8 @@ player.CharacterAdded:Connect(function()
 end)
 
 end)()
+local MovementGroup = Tabs.Character:AddLeftGroupbox('Movement')
+coroutine.wrap(function()
 local CrosshairGroup = Tabs.Visual:AddRightGroupbox('Crosshair')
 local Client = players.LocalPlayer
 local mouse = Client:GetMouse()
@@ -5125,7 +5128,6 @@ RainGroup:AddSlider('SnowSpeed', {
         end
     end
 })
-local MovementGroup = Tabs.Character:AddLeftGroupbox('Movement')
 
 matchacc.Movement = {
     Speed = {
@@ -5216,7 +5218,7 @@ local function CreateCore()
     Weld.C0 = CFrame.new(0, 0, 0)
     return Core
 end
-coroutine.wrap(function()
+
 local currentMove = Vector3.zero
 
 -- Kiểm tra có đang di chuyển không
@@ -6200,7 +6202,7 @@ RunService.Heartbeat:Connect(function(dt)
     end
     if matchacc.TargetAim.Enabled and matchacc.TargetAim.Target ~= "None" and TargetPlayer and TargetPlayer.Character and TargetPlayer.Character:FindFirstChild("Head") and not KnockCheck(TargetPlayer) then
         local tool = localPlayer.Character:FindFirstChildOfClass("Tool")
-        if tool and (not TargetPlayer.Character:FindFirstChild("ForceField") or tool.Name == "[Rifle]") then
+        if tool and not TargetPlayer.Character:FindFirstChild("ForceField") then
             if matchacc.TargetAim.AutoFire then
                 if game.PlaceId == 9825515356 then
                     local args = {
@@ -6840,6 +6842,44 @@ AutoBuyGroup:AddToggle('AutoArmor', {
         headshots.AutoArmor.Enabled = Value
     end
 })
+AutoBuyGroup:AddToggle('AutoHeal', {
+    Text = 'Auto Heal',
+    Default = false,
+    Tooltip = 'auto eat when low health',
+    Callback = function(Value)
+        getgenv().AutoHealEnabled = Value
+    end
+})
+
+RunService.Heartbeat:Connect(function()
+    if getgenv().AutoHealEnabled then
+        local char = plr.Character
+        local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+        if humanoid and humanoid.Health < humanoid.MaxHealth then
+            if not BuyingSingleActive then
+                BuyingSingleActive = true
+                local shopItem = "[Lettuce] - $5"
+                local price = 5
+                local itemName = "[Lettuce]"
+                
+                getRoot(plr).CFrame = workspace.Ignored.Shop[shopItem].Head.CFrame * CFrame.new(0, 3, 0)
+                task.wait(0.1)
+                fireclickdetector(workspace.Ignored.Shop[shopItem].ClickDetector)
+                task.wait(0.5)  -- Delay để tránh spam
+                
+                -- Equip và activate để heal (ăn lettuce để heal)
+                if plr.Backpack:FindFirstChild(itemName) then
+                    plr.Backpack[itemName].Parent = char
+                end
+                if char:FindFirstChild(itemName) then
+                    char[itemName]:Activate()
+                end
+                
+                BuyingSingleActive = false
+            end
+        end
+    end
+end)
 end
 end)()
 coroutine.wrap(function()
@@ -7433,7 +7473,6 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
-local LeftGroupBox = Tabs.Player:AddRightGroupbox('Teleports')
 local DesyncGroup = Tabs.Player:AddRightGroupbox('Desync')
 DesyncGroup:AddToggle('DesyncEnabled', {
     Text = 'Enabled',
@@ -7547,6 +7586,167 @@ DesyncGroup:AddToggle('DesyncDot', {
     Default = false,
     Callback = function(Value)
         matchacc.Desync.Dot = Value
+    end
+})
+local FakePosGroup = Tabs.Player:AddRightGroupbox('Fake Position')
+local FakePos = {
+    Enabled = false,
+    Mode = "Voidless",
+    Version = "Version 1",
+    ReturnDelay = 0.5,
+    Method = "Advanced",
+    OriginalPos = nil,
+    Active = false
+}
+
+-- Function lấy position theo version
+local function GetFakePosOffset()
+    if FakePos.Version == "Version 1" then
+        return CFrame.new(100000, 100000, 100000)
+    elseif FakePos.Version == "Version 2" then
+        return CFrame.new(50000000, 50000000, 50000000)
+    elseif FakePos.Version == "Version 3" then
+        return CFrame.new(9e9, 9e9, 9e9)
+    end
+end
+
+-- Function apply fake position
+local function ApplyFakePosition()
+    if FakePos.Active then return end
+    
+    local Character = game.Players.LocalPlayer.Character
+    if not Character then return end
+    
+    local HRP = Character:FindFirstChild("HumanoidRootPart")
+    if not HRP then return end
+    
+    FakePos.Active = true
+    FakePos.OriginalPos = HRP.CFrame
+    
+    -- Disable void death temporarily
+    local oldFallHeight = workspace.FallenPartsDestroyHeight
+    workspace.FallenPartsDestroyHeight = -math.huge
+    
+    -- Apply method-specific logic
+    if FakePos.Method == "Advanced" then
+        pcall(function()
+            getgenv().Desync = true
+            setfflag("NextGenReplicatorEnabledWrite4", "True")
+        end)
+    end
+    
+    -- Teleport based on mode
+    if FakePos.Mode == "Voidless" then
+        local offset = GetFakePosOffset()
+        if offset then
+            HRP.CFrame = offset
+        end
+        
+        -- Return after delay
+        task.spawn(function()
+            task.wait(FakePos.ReturnDelay)
+            if HRP and FakePos.OriginalPos then
+                HRP.CFrame = FakePos.OriginalPos
+            end
+            workspace.FallenPartsDestroyHeight = oldFallHeight
+            FakePos.Active = false
+        end)
+    elseif FakePos.Mode == "On the spot" then
+        -- Stay at current position but desync
+        task.spawn(function()
+            task.wait(FakePos.ReturnDelay)
+            workspace.FallenPartsDestroyHeight = oldFallHeight
+            FakePos.Active = false
+        end)
+    end
+end
+
+-- Function disable fake position
+local function DisableFakePosition()
+    FakePos.Active = false
+    workspace.FallenPartsDestroyHeight = 0/0
+    
+    if FakePos.Method == "Advanced" then
+        pcall(function()
+            getgenv().Desync = false
+            setfflag("NextGenReplicatorEnabledWrite4", "False")
+        end)
+    end
+end
+local function isSetFFlagSupported()
+    local success, err = pcall(function()
+        setfflag("SomeDummyFlagForTest", "0")  
+    end)
+    if success then
+        return true
+    else
+        warn("Executor not support setfflag: " .. tostring(err))
+        return false
+    end
+end
+-- UI cho Fake Position
+FakePosGroup:AddToggle('EnableFakePos', {
+    Text = 'Enable',
+    Default = false,
+    Tooltip = 'You has been scam'
+}):AddKeyPicker('FakePosBind', {
+    Default = '',
+    Mode = 'Toggle',
+    Text = 'Fake Position',
+    NoUI = false,
+    SyncToggleState = false,
+    Callback = function(value)
+        if game:GetService("UserInputService"):GetFocusedTextBox() then return end
+        if not isSetFFlagSupported() then
+            Library:Notify("FakePos requires a powerful executor", 3)
+        end
+        if Toggles.EnableFakePos.Value then
+            if value then
+                ApplyFakePosition()
+                Library:Notify("FakePos Enabled", 3)
+            else
+                DisableFakePosition()
+                Library:Notify("FakePos Disabled", 3)
+            end
+        end
+    end
+}):OnChanged(function(value)
+    FakePos.Enabled = value
+    if value then
+        ApplyFakePosition()
+    else
+        DisableFakePosition()
+    end
+end)
+
+FakePosGroup:AddDropdown('FakePosVersion', {
+    Values = {'Version 1', 'Version 2', 'Version 3'},
+    Default = 1,
+    Multi = false,
+    Text = 'Version',
+    Callback = function(value)
+        FakePos.Version = value
+    end
+})
+
+FakePosGroup:AddDropdown('FakePosMode', {
+    Values = {'Voidless', 'On the spot'},
+    Default = 1,
+    Multi = false,
+    Text = 'Mode',
+    Callback = function(value)
+        FakePos.Mode = value
+    end
+})
+
+FakePosGroup:AddSlider('FakePosReturn', {
+    Text = 'Return Delay',
+    Default = 0.5,
+    Min = 0.1,
+    Max = 3,
+    Rounding = 1,
+    Callback = function(value)
+        FakePos.ReturnDelay = value
     end
 })
 local PlayerListGroup = Tabs.Player:AddLeftGroupbox('Playerlist')
@@ -7848,7 +8048,6 @@ Toxic = {
 "Bro doesn't have rizz",
 "Sigma who?",
 "storm trooper ahh",
-
 "Am still buffering",
 "Bro shooting at butterflies",
 "Your aim took PTO",
@@ -10659,7 +10858,7 @@ local function startAntiStomp()
         end
     end)
 end
-
+local antiStompActive = false
 MiscBox:AddToggle('AntiStomp', {
     Text = 'Anti Stomp v1+v2',
     Default = false,
@@ -10679,7 +10878,6 @@ MiscBox:AddToggle('Flashback', {
         flashbackActive = state
     end,
 })
-local antiStompActive = false
 
 local lastDeathPosition = nil
 RunService.Heartbeat:Connect(function()
@@ -12094,6 +12292,17 @@ ThemeManager:ApplyToTab(Tabs['UI Settings'])
 SaveManager:LoadAutoloadConfig()
 Library:OnUnload(function()
     --WatermarkConnection:Disconnect()
+    if FakePos.Enabled then
+        DisableFakePosition()
+    end
+    
+    -- Disable position desync
+    if PosDesync.Enabled then
+        DisablePosDesync()
+    end
+    
+    -- Restore workspace settings
+    workspace.FallenPartsDestroyHeight = 0/0
     print('Unloaded!')
     Library.Unloaded = true
     for _, conn in ipairs(Storage.Connections) do
