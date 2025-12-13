@@ -9459,9 +9459,7 @@ do
 end 
 Modules:InitGrab()
 do
-Bạn đúng rồi! Code trước tôi viết thiếu logic quan trọng. Dưới đây là **phiên bản hoàn chỉnh** với đầy đủ các tool từ document bạn gửi:
 
-```lua
 local LocalPlayer = game:GetService("Players").LocalPlayer
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
